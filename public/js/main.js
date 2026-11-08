@@ -9,6 +9,8 @@
     const el = document.getElementById('countdown');
     if (!el) return;
     const d = Math.max(0, EVENT - Date.now()) / 1000;
+    const l = document.getElementById('countdown-l');
+    if (l && d === 0) l.textContent = Date.now() < EVENT + 27 * 3600e3 ? "C'EST PARTI · EN DIRECT SUR TWITCH" : 'MERCI À TOUS !';
     const v = {j: Math.floor(d / 86400), h: Math.floor((d % 86400) / 3600), m: Math.floor((d % 3600) / 60), s: Math.floor(d % 60)};
     for (const [k, n] of Object.entries(v)) {
       const t = el.querySelector(`[data-k="${k}"]`);
