@@ -35,6 +35,36 @@ const PUBLIC = path.join(ROOT, 'public');
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const DB_FILE = path.join(DATA_DIR, 'inscriptions.json');
 const STREAM_FILE = path.join(DATA_DIR, 'stream.json');
+const LOGO_DIR = path.join(DATA_DIR, 'logos');
+
+// ---------- Logos d'équipe (Valorant, Rocket League) ----------
+const LOGO_MAX = 2 * 1024 * 1024;
+const LOGO_TYPES = {png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp'};
+// Décode une image envoyée en data URL et vérifie qu'il s'agit vraiment d'un PNG, JPEG ou WebP
+function parseLogo(v) {
+  if (typeof v !== 'string') return null;
+  const m = v.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
+  if (!m) return null;
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length || buf.length > LOGO_MAX) return null;
+  const ext = buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? 'png'
+    : buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff ? 'jpg'
+      : buf.slice(0, 4).toString('latin1') === 'RIFF' && buf.slice(8, 12).toString('latin1') === 'WEBP' ? 'webp' : null;
+  return ext ? {ext, buf} : null;
+}
+function saveLogo(id, logo) {
+  fs.mkdirSync(LOGO_DIR, {recursive: true});
+  for (const e of Object.keys(LOGO_TYPES)) fs.rmSync(path.join(LOGO_DIR, `${id}.${e}`), {force: true});
+  const name = `${id}.${logo.ext}`;
+  fs.writeFileSync(path.join(LOGO_DIR, name), logo.buf);
+  return name;
+}
+// Logo d'une équipe payée, retrouvée par son nom, pour l'habillage Twitch
+function teamLogoUrl(game, teamName) {
+  const n = String(teamName || '').trim().toLowerCase();
+  const r = n && loadDb().find((x) => x.competition === game && x.status === 'paid' && x.logo && x.teamName.toLowerCase() === n);
+  return r ? `/api/logo/${r.id}` : '';
+}
 
 // État de l'habillage Twitch (piloté depuis /stream/controle.html)
 const STREAM_DEFAULT = {
@@ -159,9 +189,11 @@ function validate(body) {
     out.autorisationRecue = false;
     return out;
   });
+  const logo = comp.team ? parseLogo(body.logo) : null;
+  if (comp.team && !logo) errors.push("Ajoute le logo de l'équipe (PNG, JPG ou WebP, 2 Mo maximum).");
   if (body.reglement !== true) errors.push('Tu dois accepter le règlement.');
   if (body.rgpd !== true) errors.push('Tu dois accepter la politique de confidentialité.');
-  return {errors, comp, teamName, players};
+  return {errors, comp, teamName, players, logo};
 }
 
 // ---------- Stripe ----------
@@ -263,7 +295,7 @@ function isAdmin(req) {
 
 function csv(db) {
   const head = ['id', 'date', 'statut', 'competition', 'equipe', 'montant', 'joueur', 'pseudo', 'id_en_jeu', 'prenom', 'nom', 'email', 'telephone',
-    'naissance', 'age', 'mineur', 'moins_16', 'accompagnateur', 'tel_accompagnateur', 'autorisation_recue', 'menu_best_of'];
+    'naissance', 'age', 'mineur', 'moins_16', 'accompagnateur', 'tel_accompagnateur', 'autorisation_recue', 'menu_best_of', 'logo'];
   // Neutralise les formules (=, +, -, @) qu'Excel exécuterait, sauf les numéros de téléphone
   const esc = (v) => {
     let s = String(v ?? '');
@@ -274,7 +306,7 @@ function csv(db) {
   for (const r of db) r.players.forEach((p, i) => rows.push([r.id, r.createdAt, r.status, COMPETITIONS[r.competition].name, r.teamName, r.amount,
     i + 1, p.pseudo, p.ingame, p.prenom, p.nom, p.email, p.tel, p.naissance, p.age, p.mineur ? 'oui' : 'non', p.moins16 ? 'oui' : 'non',
     p.accompagnateur ? `${p.accompagnateur.nom} (${p.accompagnateur.lien})` : '', p.accompagnateur?.tel, p.autorisationRecue ? 'oui' : 'non',
-    p.bestOf ? 'oui' : 'non'].map(esc).join(';')));
+    p.bestOf ? 'oui' : 'non', r.logo && i === 0 ? `${BASE_URL}/api/logo/${r.id}` : ''].map(esc).join(';')));
   return '﻿' + rows.join('\n');
 }
 
@@ -289,7 +321,7 @@ async function api(req, res, url) {
     if (!st.open) return send(res, 403, {error: Date.now() < OPEN_AT ? 'Les inscriptions ne sont pas encore ouvertes.' : 'Les inscriptions sont closes.'});
     if (!st.paymentAvailable) return send(res, 503, {error: "Le paiement en ligne n'est pas encore configuré. Réessaie plus tard."});
     let body;
-    try { body = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
+    try { body = JSON.parse(await readBody(req, 3 * 1024 * 1024)); } catch { return send(res, 400, {error: 'Requête invalide ou logo trop lourd (2 Mo maximum).'}); }
     const v = validate(body);
     if (v.errors.length) return send(res, 400, {error: v.errors.join(' ')});
     const db = loadDb();
@@ -303,6 +335,7 @@ async function api(req, res, url) {
       expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60e3).toISOString(),
       competition: body.competition, teamName: v.teamName, players: v.players, amount: v.comp.price * v.players.length,
     };
+    if (v.logo) reg.logo = saveLogo(reg.id, v.logo);
     db.push(reg); saveDb(db);
     if (MOCK_PAYMENT) {
       markPaid(reg.id, {payment: 'simulé'});
@@ -334,7 +367,20 @@ async function api(req, res, url) {
     return send(res, 200, {received: true});
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/stream') return send(res, 200, loadStream(), {'Cache-Control': 'no-store'});
+  if (req.method === 'GET' && url.pathname === '/api/stream') {
+    const st = loadStream();
+    return send(res, 200, {...st, logoA: teamLogoUrl(st.game, st.teamA), logoB: teamLogoUrl(st.game, st.teamB)}, {'Cache-Control': 'no-store'});
+  }
+
+  const lm = url.pathname.match(/^\/api\/logo\/([0-9a-f-]{36})$/);
+  if (req.method === 'GET' && lm) {
+    const r = loadDb().find((x) => x.id === lm[1]);
+    const file = r?.logo && path.join(LOGO_DIR, path.basename(r.logo));
+    if (!file || !fs.existsSync(file)) return send(res, 404, {error: 'Logo introuvable.'});
+    res.writeHead(200, {'Content-Type': LOGO_TYPES[path.extname(file).slice(1)], 'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'", 'Cache-Control': 'no-cache'});
+    return fs.createReadStream(file).pipe(res);
+  }
 
   const m = url.pathname.match(/^\/api\/inscription\/([0-9a-f-]{36})$/);
   if (req.method === 'GET' && m) {
@@ -359,6 +405,15 @@ async function api(req, res, url) {
       let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
       const st = cleanStream(b); saveStream(st);
       return send(res, 200, st);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/logo') {
+      let b; try { b = JSON.parse(await readBody(req, 3 * 1024 * 1024)); } catch { return send(res, 400, {error: 'Logo trop lourd (2 Mo maximum).'}); }
+      const db = loadDb(); const r = db.find((x) => x.id === b.id);
+      if (!r || !COMPETITIONS[r.competition].team) return send(res, 404, {error: 'Équipe introuvable.'});
+      const logo = parseLogo(b.logo);
+      if (!logo) return send(res, 400, {error: 'Image invalide : PNG, JPG ou WebP, 2 Mo maximum.'});
+      r.logo = saveLogo(r.id, logo); saveDb(db);
+      return send(res, 200, {ok: true});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/update') {
       let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }

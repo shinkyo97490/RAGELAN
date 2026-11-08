@@ -19,6 +19,9 @@
     filter: drop-shadow(0 8px 24px rgba(0,0,0,.6)); }
   .team { width: 470px; background: rgba(8,8,12,.92); display: flex; align-items: center; padding: 0 28px; font-size: 40px; white-space: nowrap; overflow: hidden; }
   .team.a { justify-content: flex-end; border-left: 8px solid var(--c); clip-path: polygon(24px 0, 100% 0, 100% 100%, 0 100%); }
+  .team img { height: 60px; width: 60px; object-fit: contain; flex: none; }
+  .team.a img { margin-left: 18px; order: 2; }
+  .team.b img { margin-right: 18px; }
   .team.b { justify-content: flex-start; border-right: 8px solid var(--c); clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%); }
   .score { width: 92px; display: flex; align-items: center; justify-content: center; font-size: 60px; background: var(--fire-h); color: #000; }
   .mid { width: 210px; background: #0b0b10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-left: 2px solid #222; border-right: 2px solid #222; }
@@ -63,11 +66,11 @@
 <div id="match">
   <div class="bugwrap" id="bugwrap">
   <div class="bug">
-    <div class="team a anton" id="teamA">Équipe A</div>
+    <div class="team a anton"><span id="teamA">Équipe A</span><img id="logoA" class="hide" alt=""></div>
     <div class="score anton" id="scoreA">0</div>
     <div class="mid"><img id="gameLogo" src="" alt=""><div class="bo anton" id="bo">BO3</div></div>
     <div class="score anton" id="scoreB">0</div>
-    <div class="team b anton" id="teamB">Équipe B</div>
+    <div class="team b anton"><img id="logoB" class="hide" alt=""><span id="teamB">Équipe B</span></div>
   </div>
   <div class="phase anton" id="phase">Phase de groupes</div>
   </div>
@@ -119,6 +122,11 @@
     const g = GAMES[st.game] || GAMES.valorant;
     document.documentElement.style.setProperty('--c', g.color);
     $('teamA').textContent = st.teamA; $('teamB').textContent = st.teamB;
+    for (const k of ['A', 'B']) {
+      const img = $('logo' + k), src = st['logo' + k] || '';
+      if (img.getAttribute('src') !== src) { if (src) img.src = src; else img.removeAttribute('src'); }
+      img.classList.toggle('hide', !src);
+    }
     $('scoreA').textContent = st.scoreA; $('scoreB').textContent = st.scoreB;
     $('gameLogo').src = g.logo;
     $('bo').textContent = st.bo ? `BO${st.bo}` : '';

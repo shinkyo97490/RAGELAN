@@ -255,3 +255,16 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
   .stats .v { font-size: 32px; }
   .stats #countdown { grid-column: 1 / -1; }
 }
+
+/* Logo d'équipe (inscription + admin) */
+.logo-up{display:flex;gap:18px;align-items:center;margin-top:16px}
+.logo-up .field{flex:1}
+.logo-prev{width:96px;height:96px;flex:none;border:1px dashed var(--line,#3a332b);display:grid;place-items:center;background:repeating-conic-gradient(#1d1915 0 25%,#16130f 0 50%) 0 0/16px 16px}
+.logo-prev span{font:700 12px 'JetBrains Mono',monospace;color:#8a8178;letter-spacing:.12em}
+.logo-prev img{max-width:88px;max-height:88px;object-fit:contain}
+.team-cell{display:flex;align-items:center;gap:10px}
+.team-cell img{width:44px;height:44px;object-fit:contain;background:#1d1915}
+.team-cell label{font-size:12px;color:var(--orange);cursor:pointer;text-decoration:underline}
+@media(max-width:560px){.logo-up{flex-direction:column;align-items:flex-start}}
+.logo-up .field{min-width:0;width:100%}
+.logo-up input[type=file]{max-width:100%;width:100%}

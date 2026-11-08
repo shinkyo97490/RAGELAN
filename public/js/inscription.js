@@ -9,6 +9,28 @@
   const params = new URLSearchParams(location.search);
   let st = null;
   let current = null;
+  let logoData = '';
+
+  // Réduit le logo à 512 px max côté navigateur (garde la transparence) avant l'envoi
+  function readLogo(file) {
+    return new Promise((resolve, reject) => {
+      if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return reject(new Error('Format non accepté : PNG, JPG ou WebP.'));
+      if (file.size > 10 * 1024 * 1024) return reject(new Error('Image trop lourde (10 Mo maximum).'));
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 512 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(img.src);
+        let url = c.toDataURL('image/png');
+        if (url.length > 2.6e6) url = c.toDataURL('image/webp', 0.9);
+        resolve(url);
+      };
+      img.onerror = () => reject(new Error("Impossible de lire cette image."));
+      img.src = URL.createObjectURL(file);
+    });
+  }
 
   function banner(html, kind = 'info') { $('#banner').innerHTML = html ? `<div class="alert ${kind}">${html}</div>` : ''; }
 
@@ -90,13 +112,29 @@
       }
       return p;
     });
-    return {competition: current, teamName: $('#teamName').value.trim(), players,
+    return {competition: current, teamName: $('#teamName').value.trim(), logo: st.competitions[current].team ? logoData : undefined, players,
       reglement: $('#reglement').checked, rgpd: $('#rgpd').checked};
   }
+
+  $('#teamLogo').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    const prev = $('#logo-prev');
+    logoData = '';
+    prev.innerHTML = '<span>LOGO</span>';
+    if (!f) return;
+    try {
+      logoData = await readLogo(f);
+      prev.replaceChildren(Object.assign(document.createElement('img'), {src: logoData, alt: 'Logo'}));
+    } catch (err) { e.target.value = ''; alert(err.message); }
+  });
 
   $('#form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!current) return;
+    if (st.competitions[current].team && !logoData) {
+      $('#errors').innerHTML = '<div class="alert err">Ajoute le logo de l\'équipe.</div>';
+      return;
+    }
     const btn = $('#submit');
     btn.disabled = true; btn.textContent = 'Un instant…';
     $('#errors').innerHTML = '';

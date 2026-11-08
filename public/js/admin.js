@@ -70,12 +70,43 @@
         el('td', {textContent: new Date(r.createdAt).toLocaleString('fr-FR', {timeZone: 'Indian/Reunion'})}),
         el('td', {}, el('span', {className: `pill ${r.status}`, textContent: STATUS[r.status] || r.status})),
         el('td', {textContent: NAMES[r.competition]}),
-        el('td', {textContent: r.teamName || '—'}),
+        teamCell(r),
         tdPlayers,
         el('td', {textContent: `${r.amount} €${r.payment ? ` (${r.payment})` : ''}`}),
         actions));
     }
     if (!list.length) rows.append(el('tr', {}, el('td', {colSpan: 7, textContent: 'Aucune inscription.'})));
+  }
+
+  // Nom + logo de l'équipe, avec possibilité de remplacer le logo
+  function teamCell(r) {
+    const td = el('td');
+    if (!r.teamName) { td.textContent = '—'; return td; }
+    const box = el('div', {className: 'team-cell'});
+    if (r.logo) {
+      const a = el('a', {href: `/api/logo/${r.id}?v=${Date.now()}`, target: '_blank', title: 'Ouvrir le logo'});
+      a.append(el('img', {src: a.href, alt: ''}));
+      box.append(a);
+    }
+    const right = el('div');
+    right.append(el('b', {textContent: r.teamName}), el('br'));
+    const lab = el('label', {textContent: r.logo ? 'Changer le logo' : 'Ajouter le logo'});
+    const input = el('input', {type: 'file', accept: 'image/png,image/jpeg,image/webp', className: 'hide'});
+    input.addEventListener('change', () => {
+      const f = input.files[0];
+      if (!f) return;
+      if (f.size > 2 * 1024 * 1024) return alert('Image trop lourde (2 Mo maximum).');
+      const fr = new FileReader();
+      fr.onload = async () => {
+        try { await call('/api/admin/logo', {method: 'POST', body: JSON.stringify({id: r.id, logo: fr.result})}); await load(); } catch (e) { alert(e.message); }
+      };
+      fr.readAsDataURL(f);
+    });
+    lab.append(input);
+    right.append(lab);
+    box.append(right);
+    td.append(box);
+    return td;
   }
 
   async function load() {
