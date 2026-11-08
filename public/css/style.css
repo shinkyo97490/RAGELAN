@@ -268,3 +268,16 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 @media(max-width:560px){.logo-up{flex-direction:column;align-items:flex-start}}
 .logo-up .field{min-width:0;width:100%}
 .logo-up input[type=file]{max-width:100%;width:100%}
+
+/* Logo RushXP (organisateur) */
+.hero .org{display:inline-flex;align-items:center;gap:14px;align-self:flex-start;color:var(--text);font-family:var(--mono);font-size:13px;letter-spacing:.14em}
+.hero .org img{width:64px;height:64px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.6))}
+.hero .org b{color:var(--orange)}
+.orgby{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:40px}
+.orgby img{width:130px;height:130px}
+.foot .foot-logo{width:56px;height:56px}
+@media(max-width:560px){.hero .org img{width:52px;height:52px}.hero .org{font-size:11px}}
+
+.nav .logo.rx img{height:52px}
+.hero h1.hero-logo{line-height:0;margin:0}
+.hero h1.hero-logo img{width:min(720px,100%);height:auto;filter:drop-shadow(0 10px 30px rgba(0,0,0,.7))}
