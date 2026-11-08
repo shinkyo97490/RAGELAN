@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche d'émargement — RAGE LAN 2026</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/logos/rushxp.png">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 9mm 8mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #111; background: #fff; margin: 0; font-size: 11px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; background: #07070a; color: #fff; }
+  .bar select, .bar button { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 8px; border: 1px solid #444; background: #15151a; color: #fff; }
+  .bar button.print { background: linear-gradient(90deg, #ffd23f, #ff8a1f, #f2361f); color: #000; font-weight: 700; border: 0; cursor: pointer; }
+  .bar .err { color: #ff6b6b; }
+  main { padding: 10px 14px; }
+  header { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #ff8a1f; padding-bottom: 6px; margin-bottom: 8px; }
+  header img { height: 42px; }
+  header h1 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-size: 22px; margin: 0; letter-spacing: .03em; }
+  header .meta { margin-left: auto; text-align: right; font-size: 11px; color: #444; }
+  h2 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-size: 16px; margin: 14px 0 4px; padding: 3px 8px; color: #fff; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; break-inside: auto; }
+  tr { break-inside: avoid; }
+  th { background: #eee; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; }
+  th, td { border: 1px solid #999; padding: 4px 5px; vertical-align: middle; }
+  td.box { text-align: center; width: 54px; font-size: 13px; }
+  td.sig { width: 120px; }
+  td.team { font-weight: 700; }
+  .minor { color: #c2410c; font-weight: 700; }
+  .legend { font-size: 10px; color: #444; margin-top: 10px; }
+  .empty { padding: 30px; text-align: center; color: #666; }
+  @media print { .bar { display: none; } main { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <strong>Fiche d'émargement</strong>
+  <label>Jour <select id="day"><option value="sam">Samedi 21 (Valorant, Rocket League, Joueurs libres)</option><option value="dim">Dimanche 22 (FC 27 FUT)</option><option value="all">Toutes les compétitions</option></select></label>
+  <label>Compétition <select id="comp"><option value="">Toutes</option><option value="valorant">Valorant</option><option value="rocketleague">Rocket League</option><option value="fc27">FC 27 FUT</option><option value="libres">Joueurs libres</option></select></label>
+  <button class="print" onclick="print()">Imprimer</button>
+  <a href="admin.html" style="color:#ff8a1f;margin-left:auto">← Admin</a>
+  <span class="err" id="err"></span>
+</div>
+<main id="sheet"><p class="empty">Chargement…</p></main>
+<script src="js/emargement.js"></script>
+</body>
+</html>

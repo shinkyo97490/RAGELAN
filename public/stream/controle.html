@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contrôle stream — RAGE LAN 2026</title>
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .scenes button.active { outline: 3px solid #fff; }
+  .scorebox { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: end; }
+  .sc { display: flex; align-items: center; gap: 8px; justify-content: center; }
+  .sc .display { font-size: 54px; min-width: 50px; text-align: center; }
+  .sc button { width: 46px; height: 46px; font-size: 24px; padding: 0; }
+  textarea { width: 100%; min-height: 110px; background: #0a0a0e; border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: 12px; font: inherit; }
+  .saved { color: var(--fc); font-weight: 700; }
+</style>
+</head>
+<body>
+<nav class="nav"><div class="container"><img src="../assets/logos/ragelan.png" alt="" style="height:40px"><span class="display" style="font-size:22px">Contrôle du stream</span>
+  <a class="btn small ghost" href="overlay.html" target="_blank" style="margin-left:auto">Voir l'overlay</a></div></nav>
+<main class="container" style="max-width:980px;padding-top:24px;padding-bottom:60px">
+  <form id="login" class="panel hide" style="max-width:420px"><h2>Connexion</h2>
+    <div class="field"><label for="pwd">Mot de passe admin</label><input id="pwd" type="password"></div><p><button class="btn">Entrer</button></p><div id="lerr"></div></form>
+
+  <div id="app" class="hide">
+    <div class="panel"><h2>Scène</h2>
+      <div class="row scenes">
+        <button class="btn" data-scene="match">Match</button>
+        <button class="btn ghost" data-scene="starting">Début bientôt</button>
+        <button class="btn ghost" data-scene="pause">Pause</button>
+        <button class="btn ghost" data-scene="end">Fin du live</button>
+      </div>
+    </div>
+
+    <div class="panel"><h2>Match</h2>
+      <div class="fields">
+        <div class="field"><label>Jeu</label><select id="game"><option value="valorant">Valorant</option><option value="rocketleague">Rocket League</option><option value="fc27">FC 27 FUT</option><option value="libres">Joueurs libres</option></select></div>
+        <div class="field"><label>Phase</label><input id="phase" list="phases" maxlength="40"></div>
+        <div class="field"><label>Position du score</label><select id="bugPos"><option value="top">En haut</option><option value="bottom">En bas</option><option value="hidden">Masqué</option></select></div>
+        <div class="field"><label>Format (BO)</label><select id="bo"><option value="0">—</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option></select></div>
+      </div>
+      <datalist id="phases"><option value="Phase de groupes"><option value="Groupe A"><option value="Groupe B"><option value="Winner bracket"><option value="Loser bracket"><option value="Demi-finale"><option value="Finale du winner"><option value="Finale du loser"><option value="Grande finale"></datalist>
+      <div class="scorebox" style="margin-top:18px">
+        <div class="field"><label>Équipe / joueur A</label><input id="teamA" maxlength="30"></div>
+        <div></div>
+        <div class="field"><label>Équipe / joueur B</label><input id="teamB" maxlength="30"></div>
+        <div class="sc"><button class="btn ghost" data-d="A-">−</button><span class="display" id="scoreA">0</span><button class="btn" data-d="A+">+</button></div>
+        <div><button class="btn small ghost" id="swap" type="button">⇄ Inverser</button></div>
+        <div class="sc"><button class="btn ghost" data-d="B-">−</button><span class="display" id="scoreB">0</span><button class="btn" data-d="B+">+</button></div>
+      </div>
+      <p class="row" style="margin-top:16px"><button class="btn small ghost" id="reset" type="button">Remettre les scores à 0</button></p>
+    </div>
+
+    <div class="panel"><h2>Textes</h2>
+      <div class="field"><label>Message (bandeau défilant en match / sous-titre des scènes plein écran)</label><input id="message" maxlength="140"></div>
+      <div class="fields" style="margin-top:14px">
+        <div class="field"><label>Compte à rebours jusqu'à (heure)</label><input id="countdown" type="time"></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>« À suivre » (une ligne par match, 5 max)</label><textarea id="next" placeholder="Valorant · Groupe A · Team 1 vs Team 2"></textarea></div>
+      <p class="row" style="margin-top:14px"><button class="btn" id="save" type="button">Mettre à jour l'overlay</button><span class="saved" id="saved"></span></p>
+    </div>
+  </div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let pwd = sessionStorage.getItem('rl-admin') || '';
+  let st = {};
+
+  async function send(patch) {
+    const res = await fetch('/api/admin/stream', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-admin-password': pwd}, body: JSON.stringify(patch)});
+    if (res.status === 401) { showLogin('Mot de passe incorrect.'); return; }
+    st = await res.json(); fill();
+    $('saved').textContent = '✔ Overlay mis à jour'; setTimeout(() => ($('saved').textContent = ''), 1500);
+  }
+
+  function fill() {
+    for (const k of ['game', 'phase', 'teamA', 'teamB', 'message']) if (document.activeElement !== $(k)) $(k).value = st[k] ?? '';
+    $('bo').value = String(st.bo ?? 0);
+    $('bugPos').value = st.bugPos || 'top';
+    $('scoreA').textContent = st.scoreA; $('scoreB').textContent = st.scoreB;
+    if (document.activeElement !== $('next')) $('next').value = (st.next || []).join('\n');
+    if (st.countdown && document.activeElement !== $('countdown')) {
+      $('countdown').value = new Date(st.countdown).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit', timeZone: 'Indian/Reunion'});
+    }
+    document.querySelectorAll('[data-scene]').forEach((b) => b.classList.toggle('ghost', b.dataset.scene !== st.scene));
+  }
+
+  function countdownIso() {
+    const v = $('countdown').value;
+    if (!v) return '';
+    // Heure de La Réunion (UTC+4), aujourd'hui ou demain si l'heure est passée
+    const today = new Date().toLocaleDateString('en-CA', {timeZone: 'Indian/Reunion'});
+    let d = new Date(`${today}T${v}:00+04:00`);
+    if (d < Date.now()) d = new Date(d.getTime() + 86400e3);
+    return d.toISOString();
+  }
+
+  function form() {
+    return {bugPos: $('bugPos').value, game: $('game').value, phase: $('phase').value, bo: Number($('bo').value), teamA: $('teamA').value, teamB: $('teamB').value,
+      message: $('message').value, countdown: countdownIso(), next: $('next').value.split('\n').map((s) => s.trim()).filter(Boolean)};
+  }
+
+  document.querySelectorAll('[data-scene]').forEach((b) => b.addEventListener('click', () => send({scene: b.dataset.scene})));
+  document.querySelectorAll('[data-d]').forEach((b) => b.addEventListener('click', () => {
+    const [side, op] = [b.dataset.d[0], b.dataset.d[1]];
+    const k = `score${side}`;
+    send({[k]: Math.max(0, Math.min(9, st[k] + (op === '+' ? 1 : -1)))});
+  }));
+  $('swap').addEventListener('click', () => send({teamA: st.teamB, teamB: st.teamA, scoreA: st.scoreB, scoreB: st.scoreA}));
+  $('reset').addEventListener('click', () => send({scoreA: 0, scoreB: 0}));
+  $('save').addEventListener('click', () => send(form()));
+
+  function showLogin(msg) {
+    $('app').classList.add('hide'); $('login').classList.remove('hide');
+    if (msg) $('lerr').innerHTML = `<div class="alert err">${msg}</div>`;
+  }
+  $('login').addEventListener('submit', async (e) => { e.preventDefault(); pwd = $('pwd').value; sessionStorage.setItem('rl-admin', pwd); await start(); });
+
+  async function start() {
+    st = await (await fetch('/api/stream', {cache: 'no-store'})).json();
+    const ok = await fetch('/api/admin/inscriptions', {headers: {'x-admin-password': pwd}});
+    if (!ok.ok) return showLogin(pwd ? 'Mot de passe incorrect.' : '');
+    $('login').classList.add('hide'); $('app').classList.remove('hide'); fill();
+  }
+  start();
+</script>
+</body>
+</html>

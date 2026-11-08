@@ -1,0 +1,10 @@
+{
+  "name": "ragelan-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site et inscriptions de la RAGE LAN 2026 (RushXP)",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {"node": ">=18"}
+}

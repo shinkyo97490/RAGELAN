@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscription — RAGE LAN 2026</title>
+<meta name="description" content="Inscris-toi à la RAGE LAN 2026 : Valorant, Rocket League, FC 27 FUT ou Joueurs libres.">
+<meta name="theme-color" content="#0c0a09">
+<link rel="icon" href="assets/logos/rushxp.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="container">
+    <a class="logo" href="index.html" aria-label="RAGE LAN 2 — accueil"><img src="assets/da/logo-rage-lan-2.png" alt="LAN R.A.G.E 2"></a>
+    <div class="links"><a href="index.html#competitions">Compétitions</a><a href="index.html#infos">Infos pratiques</a><a href="index.html#inscription">Inscriptions</a></div>
+    <a class="btn ghost" href="index.html">Retour</a>
+  </div>
+</nav>
+
+<main class="container" style="max-width:920px">
+  <div class="page-head">
+    <div class="kicker">21 & 22 NOVEMBRE · COMPLEXE SPORTIF DE SAINT-PAUL</div>
+    <h1>Inscription <span class="fire">LAN R.A.G.E 2</span></h1>
+  </div>
+
+  <div id="banner"></div>
+
+  <form id="form" novalidate>
+    <div class="panel">
+      <h2>1. Ta compétition</h2>
+      <div class="comp-pick" id="comp-pick"></div>
+    </div>
+
+    <div class="panel hide" id="team-panel">
+      <h2>2. Ton équipe</h2>
+      <div class="fields"><div class="field"><label for="teamName">Nom de l'équipe *</label><input id="teamName" name="teamName" maxlength="40" autocomplete="off"></div></div>
+      <p class="note">Le joueur 1 est le capitaine : il reçoit les informations et règle l'inscription pour toute l'équipe. Pas de remplaçant.</p>
+    </div>
+
+    <div class="panel hide" id="players-panel">
+      <h2 id="players-title">3. Les joueurs</h2>
+      <div id="players"></div>
+    </div>
+
+    <div class="panel hide" id="final-panel">
+      <h2>Validation</h2>
+      <label class="check"><input type="checkbox" id="reglement"><span>J'ai lu et j'accepte le <a href="#" id="reglement-link" target="_blank">règlement de la compétition</a>, pour moi et, pour une équipe, au nom de tous ses joueurs. *</span></label>
+      <label class="check"><input type="checkbox" id="rgpd"><span>J'accepte que mes données soient utilisées par RushXP pour l'organisation de la RAGE LAN 2026 (<a href="confidentialite.html" target="_blank">politique de confidentialité</a>). *</span></label>
+      <div class="alert info">Un Menu Best Of est offert aux <b>30 premiers inscrits</b> (paiement validé). Encore <b id="bestof-left">30</b> disponibles.</div>
+      <div class="summary">
+        <div><div class="note" style="margin:0">Total à payer</div><div class="total" id="total">0 €</div><div class="note" style="margin:0" id="total-detail"></div></div>
+        <button class="btn" type="submit" id="submit">Payer et valider</button>
+      </div>
+      <p class="note">Paiement sécurisé par carte via Stripe. Ta place est réservée 30 minutes le temps du paiement ; l'inscription est confirmée dès que le paiement est validé.</p>
+      <div id="errors"></div>
+    </div>
+  </form>
+</main>
+
+<footer class="site">
+  <div class="container">
+    <div><img src="assets/logos/rushxp.png" alt="RushXP"></div>
+    <div class="social">
+      <a href="https://discord.gg/VMUXA2z5Y9" target="_blank" rel="noopener">Discord</a>
+      <a href="https://www.instagram.com/rushxp974" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://www.facebook.com/profile.php?id=61571200804042" target="_blank" rel="noopener">Facebook</a>
+    </div>
+    <div class="legal"><a href="mentions-legales.html">Mentions légales</a> · <a href="confidentialite.html">Confidentialité</a></div>
+  </div>
+</footer>
+
+<template id="tpl-player">
+  <div class="player">
+    <h3><span class="p-title"></span><small class="p-sub"></small></h3>
+    <div class="fields">
+      <div class="field"><label>Pseudo *</label><input data-f="pseudo" maxlength="40" autocomplete="off"></div>
+      <div class="field"><label class="ingame-label">Identifiant en jeu *</label><input data-f="ingame" maxlength="60" autocomplete="off"></div>
+      <div class="field"><label>Prénom *</label><input data-f="prenom" maxlength="50" autocomplete="given-name"></div>
+      <div class="field"><label>Nom *</label><input data-f="nom" maxlength="50" autocomplete="family-name"></div>
+      <div class="field"><label class="email-label">E-mail</label><input data-f="email" type="email" maxlength="120" autocomplete="email"></div>
+      <div class="field"><label class="tel-label">Téléphone</label><input data-f="tel" type="tel" maxlength="20" autocomplete="tel"></div>
+      <div class="field"><label>Date de naissance *</label><input data-f="naissance" type="date" min="1926-01-01" max="2021-12-31"></div>
+    </div>
+    <div class="minor-box">
+      <p class="minor-text"></p>
+      <label class="check"><input type="checkbox" data-f="autorisationOk"><span>Je m'engage à présenter le jour J l'<a href="docs/Autorisation_parentale_RAGE_LAN_2026.pdf" target="_blank" download>autorisation parentale</a> remplie et signée par le représentant légal. *</span></label>
+      <div class="fields accomp">
+        <div class="field"><label>Adulte accompagnateur : nom et prénom *</label><input data-a="nom" maxlength="80"></div>
+        <div class="field"><label>Lien avec le joueur *</label><input data-a="lien" maxlength="40" placeholder="Parent, frère/sœur majeur(e)…"></div>
+        <div class="field"><label>Téléphone de l'accompagnateur *</label><input data-a="tel" type="tel" maxlength="20"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="js/inscription.js"></script>
+</body>
+</html>
