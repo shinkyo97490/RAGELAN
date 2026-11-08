@@ -290,6 +290,9 @@ function markPlayerPaid(id, idx, info = {}) {
 
 const splitLink = (reg, i) => `${BASE_URL}/payer.html?id=${reg.id}&p=${i}&k=${reg.players[i].payKey}`;
 
+// ---------- Tournois (poules, phases finales, salles de match, Joueurs libres) ----------
+const TOURNOI = require('./tournoi')({DATA_DIR, COMPETITIONS, loadDb, send: (...a) => send(...a), readBody: (...a) => readBody(...a), rateLimited: (...a) => rateLimited(...a)});
+
 // ---------- HTTP ----------
 const MIME = {'.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.pdf': 'application/pdf',
@@ -312,11 +315,11 @@ function readBody(req, limit = 64 * 1024) {
 }
 
 const hits = new Map(); // limite simple : 20 tentatives d'inscription par heure et par IP
-function rateLimited(ip) {
+function rateLimited(ip, max = 20) {
   const now = Date.now();
   const list = (hits.get(ip) || []).filter((t) => now - t < 3600e3);
   list.push(now); hits.set(ip, list);
-  return list.length > 20;
+  return list.length > max;
 }
 
 function isAdmin(req) {
@@ -346,6 +349,7 @@ function csv(db) {
 
 async function api(req, res, url) {
   const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+  if (await TOURNOI.publicApi(req, res, url, ip)) return;
 
   if (req.method === 'GET' && url.pathname === '/api/status') return send(res, 200, status());
 
@@ -468,6 +472,7 @@ async function api(req, res, url) {
 
   if (url.pathname.startsWith('/api/admin/')) {
     if (!isAdmin(req)) return send(res, 401, {error: 'Mot de passe incorrect.'});
+    if (await TOURNOI.adminApi(req, res, url)) return;
     if (req.method === 'GET' && url.pathname === '/api/admin/inscriptions') return send(res, 200, {inscriptions: loadDb(), status: status()});
     if (req.method === 'GET' && url.pathname === '/api/admin/export.csv') {
       return send(res, 200, csv(loadDb()), {'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="inscriptions_rage_lan_2026.csv"'});

@@ -152,6 +152,7 @@
       $('#export').classList.remove('hide');
       $('#backup').classList.remove('hide');
       $('#emarg').classList.remove('hide');
+      $('#tournoi').classList.remove('hide');
       $('#streamctl').classList.remove('hide');
     } catch (e) {
       sessionStorage.removeItem('rl-admin');

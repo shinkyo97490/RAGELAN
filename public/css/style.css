@@ -313,3 +313,55 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 .split-row .ok{color:var(--fc);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em}
 .split-row input{flex:1;min-width:0;font-family:var(--mono);font-size:12px;padding:8px;background:var(--surface);color:var(--text);border:1px solid var(--line-2)}
 .split-row .row-in{display:flex;gap:8px;width:100%}
+
+/* ---------- Tournois ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.tabs button { padding: 12px 20px; background: var(--surface); color: var(--text); border: 0; border-bottom: 4px solid transparent; font: 800 15px var(--sans, inherit); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+.tabs button.on { border-bottom-color: var(--c, var(--orange)); color: var(--c, var(--orange)); }
+.t-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.t-card { background: var(--surface); padding: 20px; border-top: 4px solid var(--c, var(--orange)); }
+.t-card h3 { margin: 0 0 12px; font-size: 22px; }
+.t-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.t-table th, .t-table td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.t-table th { font-family: var(--mono); font-size: 11px; color: var(--orange); letter-spacing: .1em; text-transform: uppercase; }
+.t-table td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.t-team { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; min-width: 0; }
+.t-team img { width: 26px; height: 26px; object-fit: contain; flex: none; }
+.mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.mrow .b { justify-content: flex-end; text-align: right; }
+.mrow .sc { font: 900 22px var(--mono); min-width: 74px; text-align: center; }
+.mrow.win-a .a, .mrow.win-b .b { color: var(--orange); }
+.mmeta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; font-size: 12px; color: var(--text-2); }
+.mlist { display: flex; flex-direction: column; gap: 4px; }
+.bracket { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 8px; }
+.bracket .col { flex: 0 0 260px; display: flex; flex-direction: column; gap: 10px; justify-content: space-around; }
+.bracket .col h4 { margin: 0; font: 700 11px var(--mono); letter-spacing: .12em; color: var(--orange); text-transform: uppercase; }
+.bm { background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.bm .row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; }
+.bm .row + .row { border-top: 1px solid var(--line); }
+.bm .row.w { color: var(--orange); font-weight: 800; }
+.bm .row .t-team { font-size: 14px; overflow: hidden; }
+.bm .row .t-team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.veto { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 12px 0; }
+.veto button { padding: 18px 10px; background: var(--bg); color: var(--text); border: 1px solid var(--line-2); font: 800 16px inherit; text-transform: uppercase; cursor: pointer; }
+.veto button:disabled { cursor: default; }
+.veto button.ban { opacity: .35; text-decoration: line-through; }
+.veto button.pick { border-color: var(--orange); color: var(--orange); }
+.veto button.can:hover { border-color: var(--orange); background: rgba(247,148,29,.08); }
+.veto-log { font-size: 14px; line-height: 1.7; color: var(--text-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 10px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line-2); font-size: 13px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
+.chip.on { box-shadow: inset 0 0 0 2px var(--orange); color: var(--orange); }
+.inl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inl input, .inl select { padding: 8px 10px; background: var(--bg); border: 1px solid var(--line-2); color: var(--text); font-size: 14px; }
+.inl input[type=number] { width: 64px; }
+.adm-match { padding: 10px 12px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 8px; }
+.adm-match .top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+.pill.ready { background: rgba(46,139,255,.16); color: var(--rl); }
+.pill.reported { background: rgba(255,199,44,.14); color: var(--mcdo); }
+.pill.disputed { background: rgba(255,70,85,.18); color: var(--valorant); }
+.pill.done { background: rgba(11,246,108,.14); color: var(--fc); }
+.pill.waiting { background: var(--line); color: var(--muted); }
+button.chip { color: var(--text); border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; }
+button.chip.on { color: var(--orange); }
+@media (max-width: 560px) { .mrow { gap: 6px; padding: 8px; } .mrow .sc { min-width: 54px; font-size: 18px; } .mrow .t-team { font-size: 14px; } }
