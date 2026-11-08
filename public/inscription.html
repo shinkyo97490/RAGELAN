@@ -58,12 +58,17 @@
       <h2>Validation</h2>
       <label class="check"><input type="checkbox" id="reglement"><span>J'ai lu et j'accepte le <a href="#" id="reglement-link" target="_blank">règlement de la compétition</a>, pour moi et, pour une équipe, au nom de tous ses joueurs. *</span></label>
       <label class="check"><input type="checkbox" id="rgpd"><span>J'accepte que mes données soient utilisées par RushXP pour l'organisation de la RAGE LAN 2026 (<a href="confidentialite.html" target="_blank">politique de confidentialité</a>). *</span></label>
+      <div class="paymode hide" id="paymode">
+        <span class="pm-title">Qui paie ?</span>
+        <label class="pm"><input type="radio" name="payMode" value="team" checked><span><b>Le capitaine paie pour toute l'équipe</b><small id="pm-team"></small></span></label>
+        <label class="pm"><input type="radio" name="payMode" value="split"><span><b>Chacun paie sa part</b><small id="pm-split"></small></span></label>
+      </div>
       <div class="alert info">Un Menu Best Of est offert aux <b>30 premiers inscrits</b> (paiement validé). Encore <b id="bestof-left">30</b> disponibles.</div>
       <div class="summary">
         <div><div class="note" style="margin:0">Total à payer</div><div class="total" id="total">0 €</div><div class="note" style="margin:0" id="total-detail"></div></div>
         <button class="btn" type="submit" id="submit">Payer et valider</button>
       </div>
-      <p class="note">Paiement sécurisé par carte via Stripe. Ta place est réservée 30 minutes le temps du paiement ; l'inscription est confirmée dès que le paiement est validé.</p>
+      <p class="note" id="paynote">Paiement sécurisé par carte via Stripe. Ta place est réservée 30 minutes le temps du paiement ; l'inscription est confirmée dès que le paiement est validé.</p>
       <div id="errors"></div>
     </div>
   </form>

@@ -35,6 +35,7 @@ const PUBLIC = path.join(ROOT, 'public');
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const DB_FILE = path.join(DATA_DIR, 'inscriptions.json');
 const STREAM_FILE = path.join(DATA_DIR, 'stream.json');
+const SPLIT_HOURS = 48; // paiement « chacun sa part » : délai laissé à l'équipe pour que tout le monde paie
 const LOGO_DIR = path.join(DATA_DIR, 'logos');
 
 // ---------- Logos d'équipe (Valorant, Rocket League) ----------
@@ -109,14 +110,14 @@ function saveDb(db) {
 
 // Une inscription « pending » ne bloque une place que pendant la durée de réservation
 function isActive(r, now = Date.now()) {
-  return r.status === 'paid' || (r.status === 'pending' && new Date(r.expiresAt).getTime() > now);
+  return r.status === 'paid' || r.status === 'partial' || (r.status === 'pending' && new Date(r.expiresAt).getTime() > now);
 }
 function usedUnits(db, comp) {
   return db.filter((r) => r.competition === comp && isActive(r))
     .reduce((n, r) => n + (COMPETITIONS[comp].team ? 1 : r.players.length), 0);
 }
 function bestOfGiven(db) {
-  return db.filter((r) => r.status === 'paid').reduce((n, r) => n + r.players.filter((p) => p.bestOf).length, 0);
+  return db.filter((r) => r.status === 'paid' || r.status === 'partial').reduce((n, r) => n + r.players.filter((p) => p.bestOf).length, 0);
 }
 
 function status() {
@@ -191,9 +192,10 @@ function validate(body) {
   });
   const logo = comp.team ? parseLogo(body.logo) : null;
   if (comp.team && !logo) errors.push("Ajoute le logo de l'équipe (PNG, JPG ou WebP, 2 Mo maximum).");
+  const payMode = comp.team && body.payMode === 'split' ? 'split' : 'team';
   if (body.reglement !== true) errors.push('Tu dois accepter le règlement.');
   if (body.rgpd !== true) errors.push('Tu dois accepter la politique de confidentialité.');
-  return {errors, comp, teamName, players, logo};
+  return {errors, comp, teamName, players, logo, payMode};
 }
 
 // ---------- Stripe ----------
@@ -206,22 +208,25 @@ function formEncode(obj, prefix = '', out = []) {
   return out.join('&');
 }
 
-async function createCheckout(reg) {
+// player = index du joueur qui paie sa part (mode « chacun sa part »), sinon paiement de toute l'inscription
+async function createCheckout(reg, {player = null, expiresAt = reg.expiresAt, successUrl, cancelUrl} = {}) {
   const comp = COMPETITIONS[reg.competition];
+  const single = player !== null;
+  const who = single ? reg.players[player] : reg.players[0];
   const params = {
     mode: 'payment',
-    customer_email: reg.players[0].email,
     client_reference_id: reg.id,
-    expires_at: Math.floor(new Date(reg.expiresAt).getTime() / 1000),
-    success_url: `${BASE_URL}/merci.html?id=${reg.id}`,
-    cancel_url: `${BASE_URL}/inscription.html?c=${reg.competition}&annule=1`,
-    metadata: {registration_id: reg.id, competition: reg.competition},
+    expires_at: Math.floor(new Date(expiresAt).getTime() / 1000),
+    success_url: successUrl || `${BASE_URL}/merci.html?id=${reg.id}`,
+    cancel_url: cancelUrl || `${BASE_URL}/inscription.html?c=${reg.competition}&annule=1`,
+    metadata: {registration_id: reg.id, competition: reg.competition, ...(single ? {player: String(player)} : {})},
     line_items: {0: {
-      quantity: reg.players.length,
+      quantity: single ? 1 : reg.players.length,
       price_data: {currency: 'eur', unit_amount: comp.price * 100,
-        product_data: {name: `RAGE LAN 2026 — ${comp.name}${reg.teamName ? ` (équipe ${reg.teamName})` : ''}`}},
+        product_data: {name: `RAGE LAN 2026 — ${comp.name}${reg.teamName ? ` (équipe ${reg.teamName})` : ''}${single ? ` — part de ${who.pseudo}` : ''}`}},
     }},
   };
+  if (who.email) params.customer_email = who.email;
   const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
     headers: {Authorization: `Bearer ${STRIPE_SECRET_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded'},
@@ -247,14 +252,43 @@ function markPaid(id, info = {}) {
   const db = loadDb();
   const reg = db.find((r) => r.id === id);
   if (!reg || reg.status === 'paid') return reg;
+  const wasPartial = reg.status === 'partial';
   reg.status = 'paid';
   reg.paidAt = new Date().toISOString();
   Object.assign(reg, info);
   let left = BEST_OF_TOTAL - bestOfGiven(db);
-  for (const p of reg.players) { p.bestOf = left > 0; if (left > 0) left--; }
+  for (const p of reg.players) {
+    if (wasPartial && p.paid) continue; // déjà payé (et Best Of déjà attribué) en mode « chacun sa part »
+    if (reg.payMode === 'split') p.paid = true;
+    p.bestOf = left > 0; if (left > 0) left--;
+  }
   saveDb(db);
   return reg;
 }
+
+// Mode « chacun sa part » : enregistre le paiement d'un joueur ; l'équipe est confirmée quand tout le monde a payé
+function markPlayerPaid(id, idx, info = {}) {
+  const db = loadDb();
+  const reg = db.find((r) => r.id === id);
+  const p = reg?.players[idx];
+  if (!p || p.paid || reg.status === 'cancelled') return reg;
+  p.paid = true;
+  p.paidAt = new Date().toISOString();
+  p.amountPaid = info.amountPaid;
+  delete p.session;
+  p.bestOf = BEST_OF_TOTAL - bestOfGiven(db) > 0;
+  if (reg.status === 'pending' || reg.status === 'expired') {
+    reg.status = 'partial';
+    reg.deadline = new Date(Math.min(Date.now() + SPLIT_HOURS * 3600e3, CLOSE_AT.getTime())).toISOString();
+  }
+  if (reg.players.every((x) => x.paid)) { reg.status = 'paid'; reg.paidAt = new Date().toISOString(); }
+  reg.payment = 'stripe (chacun sa part)';
+  reg.amountPaid = reg.players.filter((x) => x.paid).reduce((n, x) => n + (x.amountPaid || COMPETITIONS[reg.competition].price), 0);
+  saveDb(db);
+  return reg;
+}
+
+const splitLink = (reg, i) => `${BASE_URL}/payer.html?id=${reg.id}&p=${i}&k=${reg.players[i].payKey}`;
 
 // ---------- HTTP ----------
 const MIME = {'.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -295,7 +329,7 @@ function isAdmin(req) {
 
 function csv(db) {
   const head = ['id', 'date', 'statut', 'competition', 'equipe', 'montant', 'joueur', 'pseudo', 'id_en_jeu', 'prenom', 'nom', 'email', 'telephone',
-    'naissance', 'age', 'mineur', 'moins_16', 'accompagnateur', 'tel_accompagnateur', 'autorisation_recue', 'menu_best_of', 'logo'];
+    'naissance', 'age', 'mineur', 'moins_16', 'accompagnateur', 'tel_accompagnateur', 'autorisation_recue', 'menu_best_of', 'logo', 'mode_paiement', 'part_payee'];
   // Neutralise les formules (=, +, -, @) qu'Excel exécuterait, sauf les numéros de téléphone
   const esc = (v) => {
     let s = String(v ?? '');
@@ -306,7 +340,7 @@ function csv(db) {
   for (const r of db) r.players.forEach((p, i) => rows.push([r.id, r.createdAt, r.status, COMPETITIONS[r.competition].name, r.teamName, r.amount,
     i + 1, p.pseudo, p.ingame, p.prenom, p.nom, p.email, p.tel, p.naissance, p.age, p.mineur ? 'oui' : 'non', p.moins16 ? 'oui' : 'non',
     p.accompagnateur ? `${p.accompagnateur.nom} (${p.accompagnateur.lien})` : '', p.accompagnateur?.tel, p.autorisationRecue ? 'oui' : 'non',
-    p.bestOf ? 'oui' : 'non', r.logo && i === 0 ? `${BASE_URL}/api/logo/${r.id}` : ''].map(esc).join(';')));
+    p.bestOf ? 'oui' : 'non', r.logo && i === 0 ? `${BASE_URL}/api/logo/${r.id}` : '', r.payMode === 'split' ? 'chacun sa part' : 'global', r.payMode === 'split' ? (p.paid ? 'oui' : 'non') : (r.status === 'paid' ? 'oui' : 'non')].map(esc).join(';')));
   return '﻿' + rows.join('\n');
 }
 
@@ -334,15 +368,17 @@ async function api(req, res, url) {
       id: crypto.randomUUID(), createdAt: now.toISOString(), status: 'pending',
       expiresAt: new Date(now.getTime() + HOLD_MINUTES * 60e3).toISOString(),
       competition: body.competition, teamName: v.teamName, players: v.players, amount: v.comp.price * v.players.length,
+      payMode: v.payMode,
     };
+    if (v.payMode === 'split') reg.players.forEach((p) => { p.paid = false; p.payKey = crypto.randomBytes(12).toString('hex'); });
     if (v.logo) reg.logo = saveLogo(reg.id, v.logo);
     db.push(reg); saveDb(db);
     if (MOCK_PAYMENT) {
-      markPaid(reg.id, {payment: 'simulé'});
+      if (v.payMode === 'split') markPlayerPaid(reg.id, 0, {amountPaid: v.comp.price}); else markPaid(reg.id, {payment: 'simulé'});
       return send(res, 200, {url: `/merci.html?id=${reg.id}`});
     }
     try {
-      const session = await createCheckout(reg);
+      const session = await createCheckout(reg, v.payMode === 'split' ? {player: 0} : {});
       const db2 = loadDb(); const r2 = db2.find((r) => r.id === reg.id); r2.stripeSession = session.id; saveDb(db2);
       return send(res, 200, {url: session.url});
     } catch (e) {
@@ -358,11 +394,14 @@ async function api(req, res, url) {
     const event = JSON.parse(raw);
     const s = event.data?.object || {};
     const id = s.metadata?.registration_id || s.client_reference_id;
+    const player = s.metadata?.player !== undefined ? Number(s.metadata.player) : null;
     if (event.type === 'checkout.session.completed' && s.payment_status === 'paid' && id) {
-      markPaid(id, {stripeSession: s.id, payment: 'stripe', amountPaid: s.amount_total / 100});
+      if (player !== null) markPlayerPaid(id, player, {amountPaid: s.amount_total / 100});
+      else markPaid(id, {stripeSession: s.id, payment: 'stripe', amountPaid: s.amount_total / 100});
     } else if (event.type === 'checkout.session.expired' && id) {
       const db = loadDb(); const r = db.find((x) => x.id === id);
       if (r && r.status === 'pending') { r.status = 'expired'; saveDb(db); }
+      else if (r && player !== null && r.players[player]?.session?.id === s.id) { delete r.players[player].session; saveDb(db); }
     }
     return send(res, 200, {received: true});
   }
@@ -386,9 +425,45 @@ async function api(req, res, url) {
   if (req.method === 'GET' && m) {
     const r = loadDb().find((x) => x.id === m[1]);
     if (!r) return send(res, 404, {error: 'Inscription introuvable.'});
+    const split = r.payMode === 'split';
     return send(res, 200, {status: isActive(r) ? r.status : (r.status === 'pending' ? 'expired' : r.status),
-      competition: COMPETITIONS[r.competition].name, teamName: r.teamName, amount: r.amount,
-      players: r.players.map((p) => ({pseudo: p.pseudo, mineur: p.mineur, moins16: p.moins16, bestOf: Boolean(p.bestOf)}))});
+      competition: COMPETITIONS[r.competition].name, teamName: r.teamName, amount: r.amount, payMode: r.payMode || 'team',
+      price: COMPETITIONS[r.competition].price, deadline: r.deadline,
+      players: r.players.map((p, i) => ({pseudo: p.pseudo, mineur: p.mineur, moins16: p.moins16, bestOf: Boolean(p.bestOf),
+        ...(split ? {paid: Boolean(p.paid), link: p.paid ? undefined : splitLink(r, i)} : {})}))});
+  }
+
+  // Paiement de sa part par un coéquipier (lien personnel envoyé par le capitaine)
+  const pm = url.pathname.match(/^\/api\/payer\/([0-9a-f-]{36})\/(\d)$/);
+  if (pm) {
+    const db = loadDb(); const r = db.find((x) => x.id === pm[1]); const i = Number(pm[2]);
+    const p = r?.payMode === 'split' && r.players[i];
+    const key = String(url.searchParams.get('k') || '');
+    if (!p || key.length !== p.payKey.length || !crypto.timingSafeEqual(Buffer.from(key), Buffer.from(p.payKey))) return send(res, 404, {error: 'Lien de paiement invalide.'});
+    const comp = COMPETITIONS[r.competition];
+    const info = {competition: comp.name, teamName: r.teamName, pseudo: p.pseudo, price: comp.price, paid: Boolean(p.paid), status: r.status,
+      deadline: r.deadline, team: r.players.map((x) => ({pseudo: x.pseudo, paid: Boolean(x.paid)}))};
+    if (req.method === 'GET') return send(res, 200, info, {'Cache-Control': 'no-store'});
+    if (req.method !== 'POST') return send(res, 405, {error: 'Méthode non autorisée.'});
+    if (p.paid) return send(res, 409, {error: 'Ta part est déjà payée.'});
+    if (r.status !== 'partial') return send(res, 409, {error: r.status === 'cancelled' ? 'Cette inscription a été annulée.' : "Le capitaine doit d'abord payer sa part."});
+    if (Date.now() >= CLOSE_AT.getTime()) return send(res, 403, {error: 'Les inscriptions sont closes. Contacte-nous sur Discord.'});
+    if (!status().paymentAvailable) return send(res, 503, {error: "Le paiement en ligne n'est pas disponible pour le moment."});
+    if (rateLimited(ip)) return send(res, 429, {error: 'Trop de tentatives, réessaie plus tard.'});
+    // Réutilise la session Stripe encore ouverte pour éviter un double paiement
+    if (p.session && new Date(p.session.expiresAt).getTime() > Date.now() + 60e3) return send(res, 200, {url: p.session.url});
+    if (MOCK_PAYMENT) { markPlayerPaid(r.id, i, {amountPaid: comp.price}); return send(res, 200, {url: `/payer.html?id=${r.id}&p=${i}&k=${key}&ok=1`}); }
+    try {
+      const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60e3).toISOString();
+      const back = `${BASE_URL}/payer.html?id=${r.id}&p=${i}&k=${key}`;
+      const session = await createCheckout(r, {player: i, expiresAt, successUrl: back + '&ok=1', cancelUrl: back});
+      const db2 = loadDb(); const r2 = db2.find((x) => x.id === r.id);
+      r2.players[i].session = {id: session.id, url: session.url, expiresAt}; saveDb(db2);
+      return send(res, 200, {url: session.url});
+    } catch (e) {
+      console.error('Stripe :', e.message);
+      return send(res, 502, {error: "Le paiement n'a pas pu être lancé. Réessaie dans quelques minutes."});
+    }
   }
 
   if (url.pathname.startsWith('/api/admin/')) {
@@ -421,6 +496,8 @@ async function api(req, res, url) {
       if (!r) return send(res, 404, {error: 'Introuvable.'});
       if (b.action === 'autorisation' && r.players[b.player]) r.players[b.player].autorisationRecue = Boolean(b.value);
       else if (b.action === 'markPaid') { saveDb(db); markPaid(r.id, {payment: 'manuel'}); return send(res, 200, {ok: true}); }
+      else if (b.action === 'playerPaid' && r.payMode === 'split' && r.players[b.player]) { markPlayerPaid(r.id, b.player, {amountPaid: COMPETITIONS[r.competition].price}); return send(res, 200, {ok: true}); }
+      else if (b.action === 'extend' && r.status === 'partial') r.deadline = new Date(Math.max(Date.now(), new Date(r.deadline).getTime()) + SPLIT_HOURS * 3600e3).toISOString();
       else if (b.action === 'cancel') r.status = 'cancelled';
       else return send(res, 400, {error: 'Action inconnue.'});
       saveDb(db);

@@ -297,3 +297,19 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 .game .plus { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--orange); }
 .libres-note { margin: 24px 0 0; padding: 20px 24px; background: var(--surface); border-left: 6px solid var(--orange); font-size: 17px; line-height: 1.5; }
 .libres-note b { font-family: var(--mono); font-size: 14px; letter-spacing: .08em; color: var(--orange); margin-right: 8px; }
+
+/* Choix du mode de paiement */
+.paymode{display:flex;flex-direction:column;gap:10px;margin:18px 0}
+.paymode .pm-title{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange)}
+.pm{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:var(--bg);box-shadow:inset 0 0 0 1px var(--line-2);cursor:pointer}
+.pm:has(input:checked){box-shadow:inset 0 0 0 2px var(--orange)}
+.pm input{margin-top:4px;accent-color:var(--orange)}
+.pm span{display:flex;flex-direction:column;gap:4px}
+.pm small{color:var(--text-2);font-size:14px;line-height:1.4}
+.pill.partial{background:rgba(247,148,29,.16);color:var(--orange)}
+.split-list{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.split-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);box-shadow:inset 0 0 0 1px var(--line)}
+.split-row .who{font-weight:800}
+.split-row .ok{color:var(--fc);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em}
+.split-row input{flex:1;min-width:0;font-family:var(--mono);font-size:12px;padding:8px;background:var(--surface);color:var(--text);border:1px solid var(--line-2)}
+.split-row .row-in{display:flex;gap:8px;width:100%}

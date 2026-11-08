@@ -83,10 +83,28 @@
       node.querySelector('[data-f="naissance"]').addEventListener('change', (e) => updateMinor(node, e.target.value));
       wrap.appendChild(node);
     }
-    const total = c.price * c.size;
-    $('#total').textContent = `${total} €`;
-    $('#total-detail').textContent = c.team ? `${c.size} joueurs × ${c.price} €` : '';
+    $('#paymode').classList.toggle('hide', !c.team);
+    $('#pm-team').textContent = `${c.price * c.size} € réglés en une fois, l'équipe est confirmée tout de suite.`;
+    $('#pm-split').textContent = `Tu paies tes ${c.price} € maintenant, puis tu envoies à chaque coéquipier son lien de paiement. L'équipe a 48 h pour que tout le monde paie.`;
+    updateTotal();
   }
+
+  function payMode() {
+    const c = st.competitions[current];
+    return c.team && document.querySelector('input[name="payMode"]:checked').value === 'split' ? 'split' : 'team';
+  }
+
+  function updateTotal() {
+    const c = st.competitions[current];
+    const split = payMode() === 'split';
+    $('#total').textContent = `${split ? c.price : c.price * c.size} €`;
+    $('#total-detail').textContent = split ? `Ta part · puis ${c.size - 1} × ${c.price} € payés par tes coéquipiers` : c.team ? `${c.size} joueurs × ${c.price} €` : '';
+    $('#submit').textContent = split ? 'Payer ma part' : 'Payer et valider';
+    $('#paynote').textContent = split
+      ? "Paiement sécurisé par carte via Stripe. Après ton paiement, tu obtiens un lien personnel pour chaque coéquipier. La place de l'équipe est réservée 48 h ; l'équipe est confirmée quand tout le monde a payé."
+      : "Paiement sécurisé par carte via Stripe. Ta place est réservée 30 minutes le temps du paiement ; l'inscription est confirmée dès que le paiement est validé.";
+  }
+  document.querySelectorAll('input[name="payMode"]').forEach((r) => r.addEventListener('change', updateTotal));
 
   function updateMinor(node, value) {
     const age = ageAt(value);
@@ -112,7 +130,7 @@
       }
       return p;
     });
-    return {competition: current, teamName: $('#teamName').value.trim(), logo: st.competitions[current].team ? logoData : undefined, players,
+    return {competition: current, payMode: payMode(), teamName: $('#teamName').value.trim(), logo: st.competitions[current].team ? logoData : undefined, players,
       reglement: $('#reglement').checked, rgpd: $('#rgpd').checked};
   }
 
@@ -148,7 +166,7 @@
       div.className = 'alert err';
       div.textContent = err.message;
       $('#errors').appendChild(div);
-      btn.disabled = false; btn.textContent = 'Payer et valider';
+      btn.disabled = false; updateTotal();
     }
   });
 

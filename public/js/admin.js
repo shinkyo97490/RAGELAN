@@ -2,7 +2,7 @@
 (function () {
   const $ = (s) => document.querySelector(s);
   const NAMES = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27 FUT', libres: 'Joueurs libres'};
-  const STATUS = {paid: 'Payée', pending: 'En attente', expired: 'Expirée', cancelled: 'Annulée'};
+  const STATUS = {paid: 'Payée', partial: 'Paiement partiel', pending: 'En attente', expired: 'Expirée', cancelled: 'Annulée'};
   let pwd = sessionStorage.getItem('rl-admin') || '';
   let data = null;
 
@@ -23,12 +23,15 @@
   function render() {
     const st = data.status;
     const paid = data.inscriptions.filter((r) => r.status === 'paid');
+    const partial = data.inscriptions.filter((r) => r.status === 'partial');
     const players = paid.flatMap((r) => r.players);
+    const cashed = paid.reduce((n, r) => n + r.amount, 0) + partial.reduce((n, r) => n + (r.amountPaid || 0), 0);
     const stats = $('#stats');
     stats.replaceChildren();
     const add = (label, value) => stats.append(el('div', {className: 'stat'}, el('div', {className: 'display', textContent: value}), el('div', {className: 'note', textContent: label})));
     add('Joueurs inscrits (payés)', players.length);
-    add('Encaissé', `${paid.reduce((n, r) => n + r.amount, 0)} €`);
+    add('Encaissé', `${cashed} €`);
+    if (partial.length) add('Équipes en paiement partiel', partial.length);
     add('Menus Best Of restants', st.bestOfRemaining);
     add('Autorisations manquantes', players.filter((p) => p.mineur && !p.autorisationRecue).length);
     for (const [id, c] of Object.entries(st.competitions)) add(`${c.name} : ${c.unit} restant(e)s`, `${c.remaining}/${c.capacity}`);
@@ -45,6 +48,20 @@
         const line = el('div', {style: 'margin-bottom:6px'});
         line.append(el('b', {textContent: p.pseudo}), ` — ${p.prenom} ${p.nom} · ${p.age} ans · ${p.ingame}`);
         if (p.email) line.append(el('br'), `${p.email} · ${p.tel}`);
+        if (r.payMode === 'split' && r.status !== 'cancelled') {
+          const pay = el('div', {style: 'margin-top:2px'});
+          if (p.paid) pay.append(el('span', {className: 'pill paid', textContent: 'Part payée'}));
+          else {
+            pay.append(el('span', {className: 'pill pending', textContent: 'Part non payée'}), ' ');
+            const link = `${location.origin}/payer.html?id=${r.id}&p=${i}&k=${p.payKey}`;
+            const cp = el('button', {className: 'btn small ghost', textContent: 'Copier son lien', type: 'button'});
+            cp.addEventListener('click', () => navigator.clipboard.writeText(link).then(() => { cp.textContent = 'Copié !'; }, () => prompt('Lien de paiement :', link)));
+            const cash = el('button', {className: 'btn small ghost', textContent: 'Payé sur place', type: 'button'});
+            cash.addEventListener('click', () => confirm(`Marquer la part de ${p.pseudo} comme payée (espèces, virement…) ?`) && update(r.id, {action: 'playerPaid', player: i}));
+            pay.append(cp, ' ', cash);
+          }
+          line.append(pay);
+        }
         if (p.bestOf) line.append('');
         if (p.mineur) {
           const lab = el('label', {style: 'display:block;color:var(--orange)'});
@@ -56,7 +73,15 @@
         tdPlayers.append(line);
       });
       const actions = el('td');
-      if (r.status === 'pending' || r.status === 'expired') {
+      if (r.status === 'partial') {
+        const late = r.deadline && new Date(r.deadline) < now;
+        actions.append(el('div', {className: 'note', style: `margin:0 0 6px;${late ? 'color:#ff6b6b;font-weight:700' : ''}`,
+          textContent: `${late ? 'Délai dépassé' : 'Délai'} : ${new Date(r.deadline).toLocaleString('fr-FR', {timeZone: 'Indian/Reunion', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}`}));
+        const ext = el('button', {className: 'btn small ghost', textContent: 'Prolonger 48 h'});
+        ext.addEventListener('click', () => update(r.id, {action: 'extend'}));
+        actions.append(ext);
+      }
+      if (r.status === 'pending' || r.status === 'expired' || r.status === 'partial') {
         const b = el('button', {className: 'btn small ghost', textContent: 'Marquer payée'});
         b.addEventListener('click', () => confirm('Marquer cette inscription comme payée ?') && update(r.id, {action: 'markPaid'}));
         actions.append(b);
@@ -68,11 +93,11 @@
       }
       rows.append(el('tr', {},
         el('td', {textContent: new Date(r.createdAt).toLocaleString('fr-FR', {timeZone: 'Indian/Reunion'})}),
-        el('td', {}, el('span', {className: `pill ${r.status}`, textContent: STATUS[r.status] || r.status})),
+        el('td', {}, el('span', {className: `pill ${r.status}`, textContent: r.status === 'partial' ? `${STATUS.partial} ${r.players.filter((p) => p.paid).length}/${r.players.length}` : STATUS[r.status] || r.status})),
         el('td', {textContent: NAMES[r.competition]}),
         teamCell(r),
         tdPlayers,
-        el('td', {textContent: `${r.amount} €${r.payment ? ` (${r.payment})` : ''}`}),
+        el('td', {textContent: r.payMode === 'split' && r.status !== 'paid' ? `${r.amountPaid || 0} / ${r.amount} €` : `${r.amount} €${r.payment ? ` (${r.payment})` : ''}`}),
         actions));
     }
     if (!list.length) rows.append(el('tr', {}, el('td', {colSpan: 7, textContent: 'Aucune inscription.'})));
