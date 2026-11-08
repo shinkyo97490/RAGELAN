@@ -281,3 +281,14 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 .nav .logo.rx img{height:52px}
 .hero h1.hero-logo{line-height:0;margin:0}
 .hero h1.hero-logo img{width:min(720px,100%);height:auto;filter:drop-shadow(0 10px 30px rgba(0,0,0,.7))}
+/* Nuit non-stop */
+.days { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.nightc { display: flex; flex-direction: column; gap: 14px; padding: 32px; border-top: 6px solid var(--orange);
+  background: radial-gradient(circle at 80% 15%, rgba(247,148,29,.22), transparent 55%), linear-gradient(180deg, #120d1c, #0c0a09); }
+.nightc .d { font-size: 44px; font-weight: 900; font-variation-settings: 'wdth' 90; line-height: 1; }
+.nightc p { margin: 0; font-size: 18px; line-height: 1.45; color: var(--text); }
+.hero .nonstop { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; padding: 10px 16px; background: rgba(12,10,9,.75);
+  box-shadow: inset 0 0 0 1px var(--orange); font-family: var(--mono); font-weight: 700; font-size: 14px; letter-spacing: .12em; color: var(--text); }
+.hero .nonstop .dot { width: 10px; height: 10px; background: var(--orange); border-radius: 50%; animation: nsPulse 1.6s ease-in-out infinite; }
+@keyframes nsPulse { 50% { opacity: .3; } }
+@media (max-width: 560px) { .hero .nonstop { font-size: 11px; } }
