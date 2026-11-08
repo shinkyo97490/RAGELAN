@@ -292,3 +292,8 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 .hero .nonstop .dot { width: 10px; height: 10px; background: var(--orange); border-radius: 50%; animation: nsPulse 1.6s ease-in-out infinite; }
 @keyframes nsPulse { 50% { opacity: .3; } }
 @media (max-width: 560px) { .hero .nonstop { font-size: 11px; } }
+/* Programme par jeu + accès Joueurs libres */
+.game .prog { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.35; }
+.game .plus { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--orange); }
+.libres-note { margin: 24px 0 0; padding: 20px 24px; background: var(--surface); border-left: 6px solid var(--orange); font-size: 17px; line-height: 1.5; }
+.libres-note b { font-family: var(--mono); font-size: 14px; letter-spacing: .08em; color: var(--orange); margin-right: 8px; }
