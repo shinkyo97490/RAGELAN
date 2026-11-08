@@ -19,7 +19,7 @@
         L'autorisation parentale remplie et signée est obligatoire : <a href="docs/Autorisation_parentale_RAGE_LAN_2026.pdf" download>télécharger le PDF</a>, à présenter à l'accueil le jour J.
         ${under16.length ? `<br><b>Moins de 16 ans (${under16.map((p) => esc(p.pseudo)).join(', ')}) :</b> un adulte accompagnateur doit être présent sur place pendant toute la durée de présence.` : ''}</div>` : ''}
       <h2 style="font-size:24px;margin-top:20px">Rendez-vous</h2>
-      <p>Samedi 21 novembre 13h → dimanche 22 novembre 16h · Complexe Sportif de Saint-Paul.<br>N'oublie pas ton PC ou ta console + ton écran.</p>
+      <p>Samedi 21 novembre 13h → dimanche 22 novembre 16h · Complexe Sportif de Saint-Paul.<br>N'oublie pas ton PC ou ta console, ton écran, tes périphériques, un câble RJ45 et une multiprise.</p>
       <p>Les horaires des matchs et les infos de dernière minute seront partagés sur le <a href="https://discord.gg/VMUXA2z5Y9" target="_blank" rel="noopener">Discord RushXP</a> : rejoins-le !</p>
       <p><a class="btn" href="index.html">Retour à l'accueil</a></p>`;
   }
