@@ -177,7 +177,9 @@
   $('#login').addEventListener('submit', (e) => { e.preventDefault(); pwd = $('#pwd').value; enter(); });
   $('#filter').addEventListener('change', render);
   $('#mailtest').addEventListener('click', async () => {
-    try { const d = await (await call('/api/admin/mail', {method: 'POST', body: JSON.stringify({action: 'test'})})).json(); alert(`E-mail de test envoyé à ${d.to}. Vérifie la boîte de réception (et les spams).`); }
+    const to = prompt('Envoyer l\'e-mail de test à quelle adresse ?', 'shinkyo97490@gmail.com');
+    if (to === null) return;
+    try { const d = await (await call('/api/admin/mail', {method: 'POST', body: JSON.stringify({action: 'test', to})})).json(); alert(`E-mail de test envoyé à ${d.to}. Vérifie la boîte de réception (et les spams).`); }
     catch (e) { alert(e.message); }
   });
   $('#refresh').addEventListener('click', load);

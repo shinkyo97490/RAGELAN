@@ -562,7 +562,8 @@ async function api(req, res, url) {
       let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
       if (!MAILER.enabled) return send(res, 503, {error: "Les e-mails ne sont pas configurés : ajoute SMTP_HOST, SMTP_USER et SMTP_PASS dans Hostinger."});
       if (b.action === 'test') {
-        try { await MAILER.send({...EMAILS.test(), to: SMTP.user}); return send(res, 200, {ok: true, to: SMTP.user}); }
+        const to = typeof b.to === 'string' && EMAIL_RE.test(b.to.trim()) ? b.to.trim() : SMTP.user;
+        try { await MAILER.send({...EMAILS.test(), to}); return send(res, 200, {ok: true, to}); }
         catch (e) { return send(res, 502, {error: `Échec de l'envoi : ${e.message}`}); }
       }
       const r = loadDb().find((x) => x.id === b.id);
