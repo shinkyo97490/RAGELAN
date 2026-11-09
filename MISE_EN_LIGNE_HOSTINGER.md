@@ -24,7 +24,7 @@ Tableau de bord de l'application Node.js → **Variables d'environnement** → A
 | `ADMIN_PASSWORD` | un mot de passe long et secret |
 | `STRIPE_SECRET_KEY` | `sk_test_…` pour l'essai, puis `sk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` (étape 3) |
-| `DATA_DIR` | un dossier **en dehors** du dossier de l'application, ex. `/home/<ton_utilisateur>/ragelan-data` |
+| `DATA_DIR` | facultatif : par défaut `~/ragelan-data` (dossier personnel du compte, conservé entre les déploiements) |
 | `SMTP_HOST` | `smtp.hostinger.com` (e-mails envoyés depuis contact@rushxp.re) |
 | `SMTP_PORT` | `465` |
 | `SMTP_USER` | `contact@rushxp.re` |

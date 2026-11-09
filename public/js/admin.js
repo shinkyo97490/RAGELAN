@@ -144,6 +144,12 @@
   async function load() {
     data = await (await call('/api/admin/inscriptions')).json();
     render();
+    try {
+      const d = await (await call('/api/admin/diagnostic')).json();
+      let box = document.getElementById('diag');
+      if (!box) { box = el('p', {id: 'diag', className: 'note', style: 'margin:0 0 14px'}); $('#stats').before(box); }
+      box.textContent = `Données : ${d.dataDir} (${d.records} inscription(s)) · E-mails : ${d.mail} · Stripe : ${d.stripe ? 'OK' : 'clé manquante'} · Webhook : ${d.webhook ? 'OK' : 'secret manquant'}`;
+    } catch { /* diagnostic facultatif */ }
   }
   async function update(id, body) {
     try { await call('/api/admin/update', {method: 'POST', body: JSON.stringify({id, ...body})}); await load(); } catch (e) { alert(e.message); }

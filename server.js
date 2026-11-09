@@ -6,6 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const os = require('os');
 
 // ---------- Configuration (variables d'environnement) ----------
 const PORT = Number(process.env.PORT || 3000);
@@ -35,7 +36,11 @@ const COMPETITIONS = {
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
 // Sur Hostinger, placer les données hors du dossier de l'application pour qu'un redéploiement ne les efface pas
-const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
+// Les données doivent survivre aux redéploiements : un chemin relatif est résolu depuis le dossier personnel
+// du compte (jamais depuis le dossier de l'application, que l'hébergeur recrée à chaque déploiement).
+const DATA_DIR = process.env.DATA_DIR
+  ? (path.isAbsolute(process.env.DATA_DIR) ? process.env.DATA_DIR : path.resolve(os.homedir(), process.env.DATA_DIR.replace(/^(\.\.\/)+/, '')))
+  : path.join(os.homedir(), 'ragelan-data');
 const DB_FILE = path.join(DATA_DIR, 'inscriptions.json');
 const STREAM_FILE = path.join(DATA_DIR, 'stream.json');
 const SPLIT_HOURS = 48; // paiement « chacun sa part » : délai laissé à l'équipe pour que tout le monde paie
@@ -211,6 +216,24 @@ function formEncode(obj, prefix = '', out = []) {
   return out.join('&');
 }
 
+// Copie de secours de l'inscription dans les métadonnées Stripe (morceaux de 490 caractères),
+// pour la reconstruire si le fichier de données venait à être perdu
+function backupMeta(reg) {
+  const {logo, ...rest} = reg;
+  const json = JSON.stringify(rest);
+  const out = {};
+  for (let i = 0, n = 0; i < json.length && n < 40; i += 490, n++) out[`bk${n}`] = json.slice(i, i + 490);
+  return out;
+}
+function restoreFromMeta(meta) {
+  try {
+    const parts = Object.keys(meta || {}).filter((k) => /^bk\d+$/.test(k)).sort((a, b) => Number(a.slice(2)) - Number(b.slice(2)));
+    if (!parts.length) return null;
+    const reg = JSON.parse(parts.map((k) => meta[k]).join(''));
+    return reg && reg.id === meta.registration_id ? reg : null;
+  } catch { return null; }
+}
+
 // player = index du joueur qui paie sa part (mode « chacun sa part »), sinon paiement de toute l'inscription
 async function createCheckout(reg, {player = null, expiresAt = reg.expiresAt, successUrl, cancelUrl} = {}) {
   const comp = COMPETITIONS[reg.competition];
@@ -222,7 +245,7 @@ async function createCheckout(reg, {player = null, expiresAt = reg.expiresAt, su
     expires_at: Math.floor(new Date(expiresAt).getTime() / 1000),
     success_url: successUrl || `${BASE_URL}/merci.html?id=${reg.id}`,
     cancel_url: cancelUrl || `${BASE_URL}/inscription.html?c=${reg.competition}&annule=1`,
-    metadata: {registration_id: reg.id, competition: reg.competition, ...(single ? {player: String(player)} : {})},
+    metadata: {registration_id: reg.id, competition: reg.competition, ...(single ? {player: String(player)} : {}), ...backupMeta(reg)},
     line_items: {0: {
       quantity: single ? 1 : reg.players.length,
       price_data: {currency: 'eur', unit_amount: comp.price * 100,
@@ -450,6 +473,12 @@ async function api(req, res, url) {
     const s = event.data?.object || {};
     const id = s.metadata?.registration_id || s.client_reference_id;
     const player = s.metadata?.player !== undefined ? Number(s.metadata.player) : null;
+    // Inscription absente (données perdues) : on la reconstruit depuis la copie de secours Stripe
+    if (id && event.type === 'checkout.session.completed' && !loadDb().some((r) => r.id === id)) {
+      const back = restoreFromMeta(s.metadata);
+      if (back) { const db = loadDb(); back.restored = true; db.push(back); saveDb(db); console.error('Inscription restaurée depuis Stripe :', id); }
+      else console.error('Paiement reçu pour une inscription introuvable :', id, s.id, s.customer_email);
+    }
     if (event.type === 'checkout.session.completed' && s.payment_status === 'paid' && id) {
       if (player !== null) markPlayerPaid(id, player, {amountPaid: s.amount_total / 100});
       else markPaid(id, {stripeSession: s.id, payment: 'stripe', amountPaid: s.amount_total / 100});
@@ -525,6 +554,10 @@ async function api(req, res, url) {
     if (!isAdmin(req)) return send(res, 401, {error: 'Mot de passe incorrect.'});
     if (await TOURNOI.adminApi(req, res, url)) return;
     if (req.method === 'GET' && url.pathname === '/api/admin/inscriptions') return send(res, 200, {inscriptions: loadDb(), status: status(), mailEnabled: MAILER.enabled});
+    if (req.method === 'GET' && url.pathname === '/api/admin/diagnostic') {
+      return send(res, 200, {dataDir: DATA_DIR, dataFileExists: fs.existsSync(DB_FILE), records: loadDb().length, appDir: ROOT, cwd: process.cwd(), home: os.homedir(),
+        mail: MAILER.enabled ? `activé (${SMTP.user} via ${SMTP.host}:${SMTP.port})` : 'désactivé : SMTP_HOST, SMTP_USER ou SMTP_PASS manquant', stripe: Boolean(STRIPE_SECRET_KEY), webhook: Boolean(STRIPE_WEBHOOK_SECRET)});
+    }
     if (req.method === 'POST' && url.pathname === '/api/admin/mail') {
       let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
       if (!MAILER.enabled) return send(res, 503, {error: "Les e-mails ne sont pas configurés : ajoute SMTP_HOST, SMTP_USER et SMTP_PASS dans Hostinger."});
