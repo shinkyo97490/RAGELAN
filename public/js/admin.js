@@ -86,6 +86,13 @@
         b.addEventListener('click', () => confirm('Marquer cette inscription comme payée ?') && update(r.id, {action: 'markPaid'}));
         actions.append(b);
       }
+      if (data.mailEnabled && (r.status === 'paid' || r.status === 'partial')) {
+        const b = el('button', {className: 'btn small ghost', textContent: "Renvoyer l'e-mail", style: 'margin-top:6px'});
+        b.addEventListener('click', async () => { try { await call('/api/admin/mail', {method: 'POST', body: JSON.stringify({action: 'resend', id: r.id})}); b.textContent = 'Envoyé !'; } catch (e) { alert(e.message); } });
+        actions.append(b);
+      }
+      if (r.mailError) actions.append(el('div', {className: 'note', style: 'color:#ff6b6b;margin-top:6px', textContent: `E-mail non envoyé (${r.mailError})`}));
+      else if (r.mails?.confirm) actions.append(el('div', {className: 'note', style: 'margin-top:6px', textContent: 'E-mail de confirmation envoyé'}));
       if (r.status !== 'cancelled') {
         const b = el('button', {className: 'btn small ghost', textContent: 'Annuler', style: 'margin-top:6px'});
         b.addEventListener('click', () => confirm("Annuler cette inscription ? La place sera libérée. Pense à rembourser via Stripe si besoin.") && update(r.id, {action: 'cancel'}));
@@ -153,6 +160,7 @@
       $('#backup').classList.remove('hide');
       $('#emarg').classList.remove('hide');
       $('#tournoi').classList.remove('hide');
+      $('#mailtest').classList.remove('hide');
       $('#streamctl').classList.remove('hide');
     } catch (e) {
       sessionStorage.removeItem('rl-admin');
@@ -162,6 +170,10 @@
 
   $('#login').addEventListener('submit', (e) => { e.preventDefault(); pwd = $('#pwd').value; enter(); });
   $('#filter').addEventListener('change', render);
+  $('#mailtest').addEventListener('click', async () => {
+    try { const d = await (await call('/api/admin/mail', {method: 'POST', body: JSON.stringify({action: 'test'})})).json(); alert(`E-mail de test envoyé à ${d.to}. Vérifie la boîte de réception (et les spams).`); }
+    catch (e) { alert(e.message); }
+  });
   $('#refresh').addEventListener('click', load);
   $('#export').addEventListener('click', async () => {
     const blob = await (await call('/api/admin/export.csv')).blob();

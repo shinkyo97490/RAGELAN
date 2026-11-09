@@ -21,6 +21,9 @@ const CLOSE_AT = new Date(process.env.CLOSE_AT || '2026-11-19T00:00:00+04:00'); 
 const EVENT_DATE = new Date('2026-11-21T13:00:00+04:00');
 const HOLD_MINUTES = 30; // durée de réservation d'une place pendant le paiement (minimum Stripe)
 const BEST_OF_TOTAL = 30;
+// E-mails (boîte contact@rushxp.re chez Hostinger : smtp.hostinger.com, port 465)
+const SMTP = {host: process.env.SMTP_HOST || '', port: Number(process.env.SMTP_PORT || 465), user: process.env.SMTP_USER || '', pass: process.env.SMTP_PASS || '',
+  fromName: process.env.SMTP_FROM_NAME || 'RAGE LAN 2026 · RushXP'};
 
 const COMPETITIONS = {
   valorant: {name: 'Valorant', team: true, size: 5, capacity: 8, unit: 'équipes', price: 25},
@@ -263,6 +266,7 @@ function markPaid(id, info = {}) {
     p.bestOf = left > 0; if (left > 0) left--;
   }
   saveDb(db);
+  notify('confirm', reg.id);
   return reg;
 }
 
@@ -281,10 +285,17 @@ function markPlayerPaid(id, idx, info = {}) {
     reg.status = 'partial';
     reg.deadline = new Date(Math.min(Date.now() + SPLIT_HOURS * 3600e3, CLOSE_AT.getTime())).toISOString();
   }
+  const firstPart = reg.status === 'partial' && reg.players.filter((x) => x.paid).length === 1;
   if (reg.players.every((x) => x.paid)) { reg.status = 'paid'; reg.paidAt = new Date().toISOString(); }
   reg.payment = 'stripe (chacun sa part)';
   reg.amountPaid = reg.players.filter((x) => x.paid).reduce((n, x) => n + (x.amountPaid || COMPETITIONS[reg.competition].price), 0);
   saveDb(db);
+  if (firstPart) {
+    notify('split', reg.id);
+    reg.players.forEach((x, i) => { if (!x.paid && x.email) notify('splitPlayer', reg.id, i); });
+  }
+  if (idx > 0 && p.email) notify('playerPaid', reg.id, idx);
+  if (reg.status === 'paid') notify('confirm', reg.id);
   return reg;
 }
 
@@ -292,6 +303,46 @@ const splitLink = (reg, i) => `${BASE_URL}/payer.html?id=${reg.id}&p=${i}&k=${re
 
 // ---------- Tournois (poules, phases finales, salles de match, Joueurs libres) ----------
 const TOURNOI = require('./tournoi')({DATA_DIR, COMPETITIONS, loadDb, send: (...a) => send(...a), readBody: (...a) => readBody(...a), rateLimited: (...a) => rateLimited(...a)});
+
+// ---------- E-mails ----------
+const MAILER = require('./mailer')(SMTP);
+const EMAILS = require('./emails')({BASE_URL, COMPETITIONS});
+
+// Envoi en arrière-plan ; chaque envoi réussi est noté dans l'inscription (reg.mails)
+function notify(kind, id, idx) {
+  if (!MAILER.enabled) return;
+  setImmediate(async () => {
+    const reg = loadDb().find((r) => r.id === id);
+    if (!reg) return;
+    let msg;
+    const links = reg.payMode === 'split' ? reg.players.map((p, i) => splitLink(reg, i)) : [];
+    try {
+      if (kind === 'confirm') msg = EMAILS.confirm(reg, COMPETITIONS[reg.competition].team || reg.competition === 'fc27' ? BASE_URL + TOURNOI.teamPath(reg.id) : '');
+      else if (kind === 'split') msg = EMAILS.splitCaptain(reg, links);
+      else if (kind === 'splitPlayer') msg = EMAILS.splitPlayer(reg, idx, links[idx]);
+      else if (kind === 'playerPaid') msg = EMAILS.playerPaid(reg, idx);
+      else if (kind === 'reminder') msg = EMAILS.reminder(reg, links);
+      if (!msg || !msg.to || (Array.isArray(msg.to) && !msg.to.filter(Boolean).length)) return;
+      await MAILER.send(msg);
+      const db = loadDb(); const r = db.find((x) => x.id === id);
+      if (r) { r.mails = r.mails || {}; r.mails[kind + (idx !== undefined ? idx : '')] = new Date().toISOString(); delete r.mailError; saveDb(db); }
+    } catch (e) {
+      console.error(`E-mail ${kind} (${id}) :`, e.message);
+      const db = loadDb(); const r = db.find((x) => x.id === id);
+      if (r) { r.mailError = `${kind} : ${e.message}`; saveDb(db); }
+    }
+  });
+}
+
+// Rappel aux équipes « chacun sa part » 12 h avant la fin du délai
+setInterval(() => {
+  const now = Date.now();
+  for (const r of loadDb()) {
+    if (r.status !== 'partial' || !r.deadline || r.mails?.reminder) continue;
+    const left = new Date(r.deadline).getTime() - now;
+    if (left > 0 && left < 12 * 3600e3) notify('reminder', r.id);
+  }
+}, 10 * 60e3).unref();
 
 // ---------- HTTP ----------
 const MIME = {'.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -473,7 +524,21 @@ async function api(req, res, url) {
   if (url.pathname.startsWith('/api/admin/')) {
     if (!isAdmin(req)) return send(res, 401, {error: 'Mot de passe incorrect.'});
     if (await TOURNOI.adminApi(req, res, url)) return;
-    if (req.method === 'GET' && url.pathname === '/api/admin/inscriptions') return send(res, 200, {inscriptions: loadDb(), status: status()});
+    if (req.method === 'GET' && url.pathname === '/api/admin/inscriptions') return send(res, 200, {inscriptions: loadDb(), status: status(), mailEnabled: MAILER.enabled});
+    if (req.method === 'POST' && url.pathname === '/api/admin/mail') {
+      let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
+      if (!MAILER.enabled) return send(res, 503, {error: "Les e-mails ne sont pas configurés : ajoute SMTP_HOST, SMTP_USER et SMTP_PASS dans Hostinger."});
+      if (b.action === 'test') {
+        try { await MAILER.send({...EMAILS.test(), to: SMTP.user}); return send(res, 200, {ok: true, to: SMTP.user}); }
+        catch (e) { return send(res, 502, {error: `Échec de l'envoi : ${e.message}`}); }
+      }
+      const r = loadDb().find((x) => x.id === b.id);
+      if (!r) return send(res, 404, {error: 'Introuvable.'});
+      if (r.status === 'paid') notify('confirm', r.id);
+      else if (r.status === 'partial') { notify('split', r.id); r.players.forEach((x, i) => { if (!x.paid && x.email) notify('splitPlayer', r.id, i); }); }
+      else return send(res, 409, {error: "Pas d'e-mail à renvoyer pour cette inscription."});
+      return send(res, 200, {ok: true});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/export.csv') {
       return send(res, 200, csv(loadDb()), {'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="inscriptions_rage_lan_2026.csv"'});
     }

@@ -482,5 +482,14 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
     return send(res, 404, {error: 'Introuvable.'}), true;
   }
 
-  return {publicApi, adminApi, vetoPlan};
+  // Lien de la page d'équipe / joueur (pour l'e-mail de confirmation)
+  function teamPath(regId) {
+    const t = load();
+    const had = t.keys[regId];
+    const k = keyFor(t, regId);
+    if (!had) save(t);
+    return `/equipe.html?id=${regId}&k=${k}`;
+  }
+
+  return {publicApi, adminApi, vetoPlan, teamPath};
 };

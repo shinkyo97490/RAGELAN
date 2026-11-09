@@ -25,6 +25,10 @@ Tableau de bord de l'application Node.js → **Variables d'environnement** → A
 | `STRIPE_SECRET_KEY` | `sk_test_…` pour l'essai, puis `sk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` (étape 3) |
 | `DATA_DIR` | un dossier **en dehors** du dossier de l'application, ex. `/home/<ton_utilisateur>/ragelan-data` |
+| `SMTP_HOST` | `smtp.hostinger.com` (e-mails envoyés depuis contact@rushxp.re) |
+| `SMTP_PORT` | `465` |
+| `SMTP_USER` | `contact@rushxp.re` |
+| `SMTP_PASS` | le mot de passe de la boîte contact@rushxp.re |
 
 Ne pas définir `PORT` ni `MOCK_PAYMENT` : Hostinger fournit le port lui-même. Hostinger redéploie l'application après l'ajout des variables.
 
