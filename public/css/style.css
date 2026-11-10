@@ -365,3 +365,8 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 button.chip { color: var(--text); border: 0; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; }
 button.chip.on { color: var(--orange); }
 @media (max-width: 560px) { .mrow { gap: 6px; padding: 8px; } .mrow .sc { min-width: 54px; font-size: 18px; } .mrow .t-team { font-size: 14px; } }
+
+.edit-dlg{width:min(900px,94vw);max-height:90vh;overflow:auto;background:var(--surface);color:var(--text);border:0;border-top:6px solid var(--orange);padding:24px 28px}
+.edit-dlg::backdrop{background:rgba(0,0,0,.7)}
+.edit-dlg .player h3{margin:0 0 8px;font-size:18px}
+.edit-dlg .field input{padding:10px}

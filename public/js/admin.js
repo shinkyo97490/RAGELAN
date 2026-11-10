@@ -73,6 +73,11 @@
         tdPlayers.append(line);
       });
       const actions = el('td');
+      if (r.status !== 'cancelled') {
+        const ed = el('button', {className: 'btn small', textContent: 'Modifier', style: 'margin-bottom:6px'});
+        ed.addEventListener('click', () => openEdit(r));
+        actions.append(ed);
+      }
       if (r.status === 'partial') {
         const late = r.deadline && new Date(r.deadline) < now;
         actions.append(el('div', {className: 'note', style: `margin:0 0 6px;${late ? 'color:#ff6b6b;font-weight:700' : ''}`,
@@ -109,6 +114,44 @@
     }
     if (!list.length) rows.append(el('tr', {}, el('td', {colSpan: 7, textContent: 'Aucune inscription.'})));
   }
+
+  // Fenêtre de modification du roster (le paiement et les Menus Best Of ne changent pas)
+  function openEdit(r) {
+    const dlg = $('#edit');
+    const F = [['pseudo', 'Pseudo'], ['ingame', 'ID en jeu'], ['prenom', 'Prénom'], ['nom', 'Nom'], ['email', 'E-mail'], ['tel', 'Téléphone'], ['naissance', 'Naissance', 'date']];
+    const body = $('#edit-body');
+    body.replaceChildren();
+    if (r.teamName) body.append(el('div', {className: 'field'}, el('label', {textContent: "Nom de l'équipe"}), el('input', {value: r.teamName, id: 'ed-team', maxLength: 40})));
+    r.players.forEach((p, i) => {
+      const box = el('div', {className: 'player', style: 'margin-top:14px'});
+      box.dataset.i = i;
+      box.append(el('h3', {textContent: r.teamName ? `Joueur ${i + 1}${i === 0 ? ' (capitaine)' : ''}` : 'Joueur'}));
+      const g = el('div', {className: 'fields'});
+      for (const [k, l, t] of F) { const inp = el('input', {type: t || 'text', value: p[k] || ''}); inp.dataset.k = k; g.append(el('div', {className: 'field'}, el('label', {textContent: l}), inp)); }
+      if (p.moins16) for (const [k, l] of [['nom', 'Accompagnateur'], ['lien', 'Lien'], ['tel', 'Tél. accompagnateur']]) { const inp = el('input', {value: p.accompagnateur?.[k] || ''}); inp.dataset.a = k; g.append(el('div', {className: 'field'}, el('label', {textContent: l}), inp)); }
+      box.append(g);
+      body.append(box);
+    });
+    $('#edit-err').replaceChildren();
+    $('#edit-title').textContent = `Modifier · ${NAMES[r.competition]}${r.teamName ? ' · ' + r.teamName : ''}`;
+    dlg.dataset.id = r.id;
+    dlg.showModal();
+  }
+  $('#edit-save').addEventListener('click', async () => {
+    const dlg = $('#edit');
+    const players = [...dlg.querySelectorAll('.player')].map((box) => {
+      const p = {}; const a = {};
+      box.querySelectorAll('[data-k]').forEach((i) => (p[i.dataset.k] = i.value.trim()));
+      box.querySelectorAll('[data-a]').forEach((i) => (a[i.dataset.a] = i.value.trim()));
+      if (Object.keys(a).length) p.accompagnateur = a;
+      return p;
+    });
+    try {
+      await call('/api/admin/edit', {method: 'POST', body: JSON.stringify({id: dlg.dataset.id, teamName: $('#ed-team')?.value, players})});
+      dlg.close(); await load();
+    } catch (e) { $('#edit-err').replaceChildren(el('div', {className: 'alert err', textContent: e.message})); }
+  });
+  $('#edit-cancel').addEventListener('click', () => $('#edit').close());
 
   // Nom + logo de l'équipe, avec possibilité de remplacer le logo
   function teamCell(r) {

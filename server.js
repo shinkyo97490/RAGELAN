@@ -594,6 +594,40 @@ async function api(req, res, url) {
       r.logo = saveLogo(r.id, logo); saveDb(db);
       return send(res, 200, {ok: true});
     }
+    // Modification du roster (nom d'équipe, joueurs) sans toucher au paiement ni aux Menus Best Of
+    if (req.method === 'POST' && url.pathname === '/api/admin/edit') {
+      let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
+      const db = loadDb(); const r = db.find((x) => x.id === b.id);
+      if (!r) return send(res, 404, {error: 'Introuvable.'});
+      const comp = COMPETITIONS[r.competition];
+      if (comp.team) {
+        const name = str(b.teamName, 40);
+        if (name.length < 2) return send(res, 400, {error: "Nom d'équipe trop court."});
+        if (db.some((x) => x.id !== r.id && x.competition === r.competition && isActive(x) && x.teamName.toLowerCase() === name.toLowerCase())) return send(res, 409, {error: "Ce nom d'équipe est déjà pris."});
+        r.teamName = name;
+      }
+      if (!Array.isArray(b.players) || b.players.length !== r.players.length) return send(res, 400, {error: 'Nombre de joueurs invalide.'});
+      const errs = [];
+      b.players.forEach((np, i) => {
+        const p = r.players[i];
+        for (const [k, n] of [['pseudo', 40], ['ingame', 60], ['prenom', 50], ['nom', 50], ['tel', 20]]) if (np[k] !== undefined) p[k] = str(np[k], n);
+        if (np.email !== undefined) {
+          const e = str(np.email, 120).toLowerCase();
+          if (e && !EMAIL_RE.test(e)) errs.push(`Joueur ${i + 1} : e-mail invalide.`); else p.email = e;
+        }
+        if (!p.pseudo) errs.push(`Joueur ${i + 1} : pseudo manquant.`);
+        if (np.naissance !== undefined && np.naissance !== p.naissance) {
+          const d = new Date(np.naissance + 'T00:00:00Z');
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(np.naissance) || isNaN(d)) errs.push(`Joueur ${i + 1} : date de naissance invalide.`);
+          else { p.naissance = np.naissance; p.age = ageAt(d, EVENT_DATE); p.mineur = p.age < 18; p.moins16 = p.age < 16; }
+        }
+        if (p.moins16 && np.accompagnateur) p.accompagnateur = {nom: str(np.accompagnateur.nom, 80), lien: str(np.accompagnateur.lien, 40), tel: str(np.accompagnateur.tel, 20)};
+      });
+      if (errs.length) return send(res, 400, {error: errs.join(' ')});
+      r.editedAt = new Date().toISOString();
+      saveDb(db);
+      return send(res, 200, {ok: true});
+    }
     if (req.method === 'POST' && url.pathname === '/api/admin/update') {
       let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
       const db = loadDb(); const r = db.find((x) => x.id === b.id);
