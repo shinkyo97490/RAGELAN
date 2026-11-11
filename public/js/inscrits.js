@@ -17,18 +17,23 @@
 
   function renderTabs() {
     $('insc-tabs').innerHTML = TABS.map((t) => {
-      const c = data[t.id], n = taken(c), on = t.id === tab;
+      const c = data[t.id], on = t.id === tab;
+      // Valorant et Rocket League : compté en équipes ; FC 27 et Joueurs libres : en joueurs
+      const n = c.team ? c.teams.length : c.players.length, cap = c.team ? c.maxTeams : c.places;
+      const left = Math.max(0, cap - n), what = c.team ? (left > 1 ? 'ÉQUIPES RESTANTES' : 'ÉQUIPE RESTANTE') : (left > 1 ? 'PLACES RESTANTES' : 'PLACE RESTANTE');
       return `<button type="button" role="tab" aria-selected="${on}" class="insc-tab ${on ? 'on' : ''}" data-tab="${t.id}">
-        <span class="row"><span class="nm">${t.name}</span><span class="ct">${n} / ${c.places}</span></span>
-        <span class="gauge"><i style="width:${Math.min(100, Math.round(n / c.places * 100))}%"></i></span>
-        <span class="left">${Math.max(0, c.places - n)} PLACES RESTANTES</span></button>`;
+        <span class="row"><span class="nm">${t.name}</span><span class="ct">${n} / ${cap}</span></span>
+        <span class="gauge"><i style="width:${Math.min(100, Math.round(n / cap * 100))}%"></i></span>
+        <span class="left">${left} ${what}</span></button>`;
     }).join('');
   }
 
   function renderList() {
     const t = TABS.find((x) => x.id === tab), c = data[tab], s = q.trim().toLowerCase();
     const has = (v) => !s || String(v).toLowerCase().includes(s);
-    $('insc-sub').textContent = `${t.name} · ${taken(c)} INSCRITS · ${t.unit}`;
+    $('insc-sub').textContent = c.team
+      ? `${t.name} · ${c.teams.length} ÉQUIPE${c.teams.length > 1 ? 'S' : ''} INSCRITE${c.teams.length > 1 ? 'S' : ''} · ${t.unit}`
+      : `${t.name} · ${c.players.length} INSCRIT${c.players.length > 1 ? 'S' : ''} · ${t.unit}`;
     let html = '';
     if (c.team) {
       const teams = c.teams.map((tm, i) => ({...tm, seed: i + 1})).filter((tm) => has(tm.name) || tm.players.some(has));
