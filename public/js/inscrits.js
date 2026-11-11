@@ -36,9 +36,8 @@
           <div class="insc-logo" style="${tm.logo ? '' : `background:hsl(${(tm.seed * 47 + t.hue) % 360} 70% 62%)`}">${tm.logo ? `<img src="${esc(tm.logo)}" alt="" loading="lazy">` : `<span>${esc(initial(tm.name))}</span>`}</div>
           <div class="meta"><span class="seed">#${String(tm.seed).padStart(2, '0')}</span><span class="tn">${esc(tm.name)}</span><span class="insc-badge">CONFIRMÉE</span></div></div></div>
         <div class="pl">${tm.players.map((p, j) => `<div><span>${esc(p)}</span>${j === 0 ? '<em>CAPITAINE</em>' : ''}</div>`).join('')}</div></div>`).join('');
-      if (!s) html += Array.from({length: Math.max(0, c.maxTeams - c.teams.length)}, () => `<div class="insc-free"><span class="mono">PLACE LIBRE</span><div class="lg">LOGO</div><b>TON ÉQUIPE ICI ?</b><a href="#inscription">S'INSCRIRE →</a></div>`).join('');
       html = html ? `<div class="insc-teams">${html}</div>` : '';
-      if (!html && s) html = `<p class="insc-empty">Aucun résultat pour « ${esc(q)} ».</p>`;
+      if (!html) html = `<p class="insc-empty">${s ? `Aucun résultat pour « ${esc(q)} ».` : 'Aucune équipe confirmée pour l’instant.'}</p>`;
     } else {
       const list = c.players.map((p, i) => ({p, n: i + 1})).filter((x) => has(x.p));
       html = list.length ? `<div class="insc-solos">${list.map((x) => `<div class="insc-solo"><span>${esc(x.p)}</span><small>#${String(x.n).padStart(2, '0')}</small></div>`).join('')}</div>`
