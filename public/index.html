@@ -28,6 +28,7 @@
     <nav class="links">
       <a href="#competitions">COMPÉTITIONS</a>
       <a href="#programme">PROGRAMME</a>
+      <a href="#inscrits">INSCRITS</a>
       <a href="#infos">INFOS</a>
       <a href="#partenaires">PARTENAIRES</a>
       <a class="btn" href="#inscription">S'INSCRIRE</a>
@@ -181,6 +182,24 @@
   </div>
 </section>
 
+<section id="inscrits" class="sec insc">
+  <div class="insc-top">
+    <div><span class="kicker">ILS SERONT LÀ</span><h2 class="h2">LES INSCRITS</h2></div>
+    <div class="insc-total"><span class="n"><b id="insc-total">0</b><span> / 128</span></span><span class="mono">PLACES PRISES</span></div>
+  </div>
+  <div class="insc-tabs" id="insc-tabs" role="tablist"></div>
+  <div class="insc-bar">
+    <span class="mono" id="insc-sub"></span>
+    <input id="insc-q" type="search" placeholder="Rechercher un pseudo ou une équipe" aria-label="Rechercher un pseudo ou une équipe">
+  </div>
+  <div id="insc-list"></div>
+  <div class="insc-legend mono">
+    <span><i style="color:#5fc27e">●</i> CONFIRMÉE = INSCRIPTION PAYÉE</span>
+    <span>SEULES LES INSCRIPTIONS PAYÉES APPARAISSENT</span>
+    <span>SEULS LES PSEUDOS SONT AFFICHÉS</span>
+  </div>
+</section>
+
 <section id="inscription" class="sec">
   <div class="reg">
     <div class="intro reveal">
@@ -257,5 +276,6 @@
 </footer>
 
 <script src="js/main.js"></script>
+<script src="js/inscrits.js"></script>
 </body>
 </html>

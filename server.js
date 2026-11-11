@@ -490,6 +490,20 @@ async function api(req, res, url) {
     return send(res, 200, {received: true});
   }
 
+  // Liste publique des inscrits : uniquement les inscriptions entièrement payées, uniquement pseudos, nom d'équipe et logo
+  if (req.method === 'GET' && url.pathname === '/api/inscrits') {
+    const paid = loadDb().filter((r) => r.status === 'paid').sort((a, b) => String(a.paidAt || a.createdAt).localeCompare(String(b.paidAt || b.createdAt)));
+    const out = {};
+    for (const [id, c] of Object.entries(COMPETITIONS)) {
+      const regs = paid.filter((r) => r.competition === id);
+      out[id] = c.team
+        ? {team: true, size: c.size, maxTeams: c.capacity, places: c.capacity * c.size,
+          teams: regs.map((r) => ({name: r.teamName, logo: r.logo ? `/api/logo/${r.id}` : '', players: r.players.map((p) => p.pseudo)}))}
+        : {team: false, places: c.capacity, players: regs.flatMap((r) => r.players.map((p) => p.pseudo))};
+    }
+    return send(res, 200, out, {'Cache-Control': 'no-store'});
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/stream') {
     const st = loadStream();
     return send(res, 200, {...st, logoA: teamLogoUrl(st.game, st.teamA), logoB: teamLogoUrl(st.game, st.teamB)}, {'Cache-Control': 'no-store'});
