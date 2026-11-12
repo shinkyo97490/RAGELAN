@@ -243,7 +243,7 @@ async function createCheckout(reg, {player = null, expiresAt = reg.expiresAt, su
     mode: 'payment',
     client_reference_id: reg.id,
     expires_at: Math.floor(new Date(expiresAt).getTime() / 1000),
-    success_url: successUrl || `${BASE_URL}/merci.html?id=${reg.id}`,
+    success_url: successUrl || `${BASE_URL}/merci.html?id=${reg.id}&s={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl || `${BASE_URL}/inscription.html?c=${reg.competition}&annule=1`,
     metadata: {registration_id: reg.id, competition: reg.competition, ...(single ? {player: String(player)} : {}), ...backupMeta(reg)},
     line_items: {0: {
@@ -321,6 +321,56 @@ function markPlayerPaid(id, idx, info = {}) {
   if (reg.status === 'paid') notify('confirm', reg.id);
   return reg;
 }
+
+// Applique une session Stripe payée : restaure l'inscription si elle a disparu, puis la confirme
+function applyPaidSession(s) {
+  const id = s.metadata?.registration_id || s.client_reference_id;
+  if (!id || s.payment_status !== 'paid') return;
+  const player = s.metadata?.player !== undefined ? Number(s.metadata.player) : null;
+  if (!loadDb().some((r) => r.id === id)) {
+    const back = restoreFromMeta(s.metadata);
+    if (back) { const db = loadDb(); back.restored = true; db.push(back); saveDb(db); console.error('Inscription restaurée depuis Stripe :', id); }
+    else { console.error('Paiement reçu pour une inscription introuvable :', id, s.id, s.customer_email); return; }
+  }
+  if (player !== null) markPlayerPaid(id, player, {amountPaid: s.amount_total / 100});
+  else markPaid(id, {stripeSession: s.id, payment: 'stripe', amountPaid: s.amount_total / 100});
+}
+
+// Filet de sécurité si le webhook Stripe est en retard ou perdu : on demande directement à Stripe
+// si les sessions de paiement de cette inscription ont été payées
+const lastReconcile = new Map();
+async function reconcile(id, hint = '', force = false) {
+  if (!STRIPE_SECRET_KEY || MOCK_PAYMENT) return;
+  const reg = loadDb().find((r) => r.id === id);
+  if (reg && (reg.status === 'paid' || reg.status === 'cancelled')) return;
+  const tk = id + (reg ? '' : hint);
+  if (!force && Date.now() - (lastReconcile.get(tk) || 0) < 4000) return;
+  lastReconcile.set(tk, Date.now());
+  const ids = new Set();
+  if (/^cs_[A-Za-z0-9_]{10,200}$/.test(hint)) ids.add(hint);
+  if (reg) {
+    if (reg.stripeSession && !(reg.payMode === 'split' && reg.players[0]?.paid)) ids.add(reg.stripeSession);
+    for (const p of reg.players) if (!p.paid && p.session?.id) ids.add(p.session.id);
+  }
+  for (const sid of ids) {
+    try {
+      const res = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sid}`, {headers: {Authorization: `Bearer ${STRIPE_SECRET_KEY}`}, signal: AbortSignal.timeout(8000)});
+      const s = await res.json();
+      if (res.ok && (s.metadata?.registration_id || s.client_reference_id) === id) applyPaidSession(s);
+    } catch (e) { console.error('Vérification Stripe :', e.message); }
+  }
+}
+// Rattrapage automatique : au démarrage puis toutes les 2 minutes, pour les inscriptions récentes non confirmées
+async function reconcileAll() {
+  const since = Date.now() - 36 * 3600e3;
+  for (const r of loadDb()) {
+    if (!['pending', 'expired', 'partial'].includes(r.status)) continue;
+    if (r.status !== 'partial' && new Date(r.createdAt).getTime() < since) continue;
+    await reconcile(r.id, '', true);
+  }
+}
+setTimeout(() => reconcileAll().catch(() => {}), 5000);
+setInterval(() => reconcileAll().catch(() => {}), 120e3).unref();
 
 const splitLink = (reg, i) => `${BASE_URL}/payer.html?id=${reg.id}&p=${i}&k=${reg.players[i].payKey}`;
 
@@ -473,15 +523,8 @@ async function api(req, res, url) {
     const s = event.data?.object || {};
     const id = s.metadata?.registration_id || s.client_reference_id;
     const player = s.metadata?.player !== undefined ? Number(s.metadata.player) : null;
-    // Inscription absente (données perdues) : on la reconstruit depuis la copie de secours Stripe
-    if (id && event.type === 'checkout.session.completed' && !loadDb().some((r) => r.id === id)) {
-      const back = restoreFromMeta(s.metadata);
-      if (back) { const db = loadDb(); back.restored = true; db.push(back); saveDb(db); console.error('Inscription restaurée depuis Stripe :', id); }
-      else console.error('Paiement reçu pour une inscription introuvable :', id, s.id, s.customer_email);
-    }
     if (event.type === 'checkout.session.completed' && s.payment_status === 'paid' && id) {
-      if (player !== null) markPlayerPaid(id, player, {amountPaid: s.amount_total / 100});
-      else markPaid(id, {stripeSession: s.id, payment: 'stripe', amountPaid: s.amount_total / 100});
+      applyPaidSession(s);
     } else if (event.type === 'checkout.session.expired' && id) {
       const db = loadDb(); const r = db.find((x) => x.id === id);
       if (r && r.status === 'pending') { r.status = 'expired'; saveDb(db); }
@@ -521,6 +564,7 @@ async function api(req, res, url) {
 
   const m = url.pathname.match(/^\/api\/inscription\/([0-9a-f-]{36})$/);
   if (req.method === 'GET' && m) {
+    await reconcile(m[1], String(url.searchParams.get('s') || ''));
     const r = loadDb().find((x) => x.id === m[1]);
     if (!r) return send(res, 404, {error: 'Inscription introuvable.'});
     const split = r.payMode === 'split';
@@ -534,6 +578,7 @@ async function api(req, res, url) {
   // Paiement de sa part par un coéquipier (lien personnel envoyé par le capitaine)
   const pm = url.pathname.match(/^\/api\/payer\/([0-9a-f-]{36})\/(\d)$/);
   if (pm) {
+    await reconcile(pm[1]);
     const db = loadDb(); const r = db.find((x) => x.id === pm[1]); const i = Number(pm[2]);
     const p = r?.payMode === 'split' && r.players[i];
     const key = String(url.searchParams.get('k') || '');

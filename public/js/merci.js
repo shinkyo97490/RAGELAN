@@ -1,6 +1,6 @@
 // Page de retour après le paiement : attend la confirmation Stripe (webhook) puis affiche le récapitulatif
 (function () {
-  const id = new URLSearchParams(location.search).get('id');
+  const qs = new URLSearchParams(location.search), id = qs.get('id'), sid = qs.get('s') || '';
   const title = document.getElementById('title');
   const content = document.getElementById('content');
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -41,7 +41,8 @@
   async function check() {
     if (!id) { content.innerHTML = '<p>Lien invalide.</p>'; return; }
     try {
-      const res = await fetch(`/api/inscription/${encodeURIComponent(id)}`, {cache: 'no-store'});
+      const res = await fetch(`/api/inscription/${encodeURIComponent(id)}${sid ? `?s=${encodeURIComponent(sid)}` : ''}`, {cache: 'no-store'});
+      if (res.status === 404) { content.innerHTML = '<p>Inscription introuvable. Contacte-nous sur <a href="https://discord.gg/VMUXA2z5Y9">Discord</a>.</p>'; return; }
       const r = await res.json();
       if (!res.ok) throw new Error(r.error);
       if (r.status === 'paid') return show(r);
@@ -52,7 +53,9 @@
         ? '<p>La confirmation du paiement prend plus de temps que prévu. Recharge cette page dans quelques minutes. Si le problème persiste, contacte-nous sur Discord.</p>'
         : '<p>Ce paiement n\'a pas abouti et ta place n\'est plus réservée. Tu peux <a href="inscription.html">recommencer ton inscription</a>.</p>';
     } catch (e) {
-      content.innerHTML = '<p>Inscription introuvable. Contacte-nous sur <a href="https://discord.gg/VMUXA2z5Y9">Discord</a>.</p>';
+      // Coupure réseau ou serveur qui redémarre : on réessaie avant d'abandonner
+      if (tries++ < 20) { setTimeout(check, 3000); return; }
+      content.innerHTML = '<p>Impossible de vérifier ton paiement pour le moment. Recharge cette page dans quelques minutes : si tu as payé, ton inscription sera bien prise en compte. Sinon contacte-nous sur <a href="https://discord.gg/VMUXA2z5Y9">Discord</a>.</p>';
     }
   }
   content.addEventListener('click', (e) => {
