@@ -12,7 +12,7 @@
       view.innerHTML = `<div class="t-grid">${data.rooms.map((r) => `<div class="t-card"><h3>${esc(r.name)}</h3>
         <div class="mmeta">${esc(r.game)} · ${r.players.length}${r.capacity ? '/' + r.capacity : ''} inscrits · ${r.open ? '<span class="pill paid">Inscriptions ouvertes</span>' : '<span class="pill waiting">Fermée</span>'}</div>
         <div class="chips">${r.players.map((p) => `<span class="chip">${esc(p.pseudo)}${p.points !== null ? ` · ${p.points} pts` : ''}</span>`).join('') || '<span class="note">Personne pour l\'instant.</span>'}</div></div>`).join('') || '<p>Aucune salle pour le moment.</p>'}</div>
-        <div class="t-card" style="margin-top:16px"><h3>Classement Joueurs libres</h3>${rank(data.classement)}</div>
+        <div class="t-card" style="margin-top:16px"><h3>Classement des mini-tournois</h3>${rank(data.classement)}</div>
         <p style="margin-top:16px"><a class="btn" href="libres.html">S'inscrire dans une salle</a></p>`;
       return;
     }

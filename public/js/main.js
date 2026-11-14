@@ -44,7 +44,7 @@
           if (c.remaining === 0) { el.textContent = 'COMPLET'; el.classList.add('full'); }
           else {
             const unit = c.remaining > 1 ? c.unit : c.unit.replace(/s$/, '');
-            const adj = (c.unit === 'joueurs' ? 'restant' : 'restante') + (c.remaining > 1 ? 's' : '');
+            const adj = (['joueurs', 'duos'].includes(c.unit) ? 'restant' : 'restante') + (c.remaining > 1 ? 's' : '');
             el.innerHTML = `<span class="n">${c.remaining}</span> ${unit} ${adj} sur ${c.capacity}`;
           }
         }

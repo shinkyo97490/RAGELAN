@@ -3,8 +3,9 @@
   const COMPS = {
     valorant: {name: 'Valorant', color: '#FF4655', day: 'sam'},
     rocketleague: {name: 'Rocket League', color: '#1E8BFF', day: 'sam'},
-    libres: {name: 'Joueurs libres', color: '#FF8A1F', day: 'sam'},
+    tft: {name: 'TFT', color: '#C9922E', day: 'sam'},
     fc27: {name: 'EA Sports FC 27 FUT', color: '#00A84F', day: 'dim'},
+    fortnite: {name: 'Fortnite', color: '#8A4FE0', day: 'dim'},
   };
   const pwd = sessionStorage.getItem('rl-admin') || '';
   const $ = (s) => document.querySelector(s);

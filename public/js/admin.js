@@ -1,7 +1,7 @@
 // Espace admin : liste des inscriptions, autorisations parentales, export CSV
 (function () {
   const $ = (s) => document.querySelector(s);
-  const NAMES = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27 FUT', libres: 'Joueurs libres'};
+  const NAMES = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27 FUT', tft: 'TFT', fortnite: 'Fortnite', libres: 'Joueurs libres'};
   const STATUS = {paid: 'Payée', partial: 'Paiement partiel', pending: 'En attente', expired: 'Expirée', cancelled: 'Annulée'};
   let pwd = sessionStorage.getItem('rl-admin') || '';
   let data = null;

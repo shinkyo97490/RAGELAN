@@ -1,9 +1,9 @@
 // Formulaire d'inscription : choix de la compétition, joueurs, règles mineurs, paiement Stripe
 (function () {
   const EVENT_DAY = new Date('2026-11-21T00:00:00Z');
-  const COLORS = {valorant: 'var(--valorant)', rocketleague: 'var(--rl)', fc27: 'var(--fc)', libres: 'var(--libres)'};
-  const INGAME = {valorant: 'Riot ID (ex. Pseudo#TAG) *', rocketleague: 'ID Epic Games / Steam *', fc27: 'EA ID *', libres: 'Pseudo en jeu principal *'};
-  const RULES = {valorant: 'reglements/valorant.html', rocketleague: 'reglements/rocketleague.html', fc27: 'reglements/fc27.html', libres: 'reglements/libres.html'};
+  const COLORS = {valorant: 'var(--valorant)', rocketleague: 'var(--rl)', fc27: 'var(--fc)', tft: 'var(--tft)', fortnite: 'var(--fortnite)'};
+  const INGAME = {valorant: 'Riot ID (ex. Pseudo#TAG) *', rocketleague: 'ID Epic Games / Steam *', fc27: 'EA ID *', tft: 'Riot ID (ex. Pseudo#TAG) *', fortnite: 'ID Epic Games *'};
+  const RULES = {valorant: 'reglements/valorant.html', rocketleague: 'reglements/rocketleague.html', fc27: 'reglements/fc27.html', tft: 'reglements/tft.html', fortnite: 'reglements/fortnite.html'};
 
   const $ = (s, el = document) => el.querySelector(s);
   const params = new URLSearchParams(location.search);
@@ -52,8 +52,8 @@
       lab.style.setProperty('--c', COLORS[id]);
       lab.innerHTML = `<input type="radio" name="competition" value="${id}" ${full ? 'disabled' : ''}>
         <span class="display" style="color:${COLORS[id]}">${c.name}</span>
-        <small>${c.team ? `Équipe de ${c.size}` : 'Solo'} · ${c.price} € / joueur</small>
-        <small>${full ? '<b style="color:#ff6b6b">COMPLET</b>' : `${c.remaining} ${c.unit} restant${c.unit === 'joueurs' ? '' : 'e'}${c.remaining > 1 ? 's' : ''}`}</small>`;
+        <small>${c.unit === 'duos' ? 'Duo' : c.team ? `Équipe de ${c.size}` : 'Solo'} · ${c.price} € / joueur</small>
+        <small>${full ? '<b style="color:#ff6b6b">COMPLET</b>' : `${c.remaining} ${c.unit} restant${['joueurs', 'duos'].includes(c.unit) ? '' : 'e'}${c.remaining > 1 ? 's' : ''}`}</small>`;
       box.appendChild(lab);
     }
     box.addEventListener('change', (e) => select(e.target.value));
@@ -66,6 +66,8 @@
     current = id;
     const c = st.competitions[id];
     $('#team-panel').classList.toggle('hide', !c.team);
+    $('#logo-label').textContent = c.logo ? "Logo de l'équipe *" : "Logo de l'équipe (facultatif)";
+    $('#team-title').textContent = c.unit === 'duos' ? '2. Ton duo' : '2. Ton équipe';
     $('#players-panel').classList.remove('hide');
     $('#final-panel').classList.remove('hide');
     $('#players-title').textContent = c.team ? `3. Les ${c.size} joueurs` : '2. Tes informations';
@@ -130,7 +132,7 @@
       }
       return p;
     });
-    return {competition: current, payMode: payMode(), teamName: $('#teamName').value.trim(), logo: st.competitions[current].team ? logoData : undefined, players,
+    return {competition: current, payMode: payMode(), teamName: $('#teamName').value.trim(), logo: st.competitions[current].team && logoData ? logoData : undefined, players,
       reglement: $('#reglement').checked, rgpd: $('#rgpd').checked};
   }
 
@@ -149,7 +151,7 @@
   $('#form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!current) return;
-    if (st.competitions[current].team && !logoData) {
+    if (st.competitions[current].logo && !logoData) {
       $('#errors').innerHTML = '<div class="alert err">Ajoute le logo de l\'équipe.</div>';
       return;
     }

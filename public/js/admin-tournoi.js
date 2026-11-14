@@ -108,12 +108,14 @@
     }).join('');
   }
 
-  // ---------- Onglet Joueurs libres ----------
+  // ---------- Onglet Salles (jeu libre, mini-tournois, parties TFT et Fortnite) ----------
+  const COMPN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', tft: 'TFT', fortnite: 'Fortnite', libres: 'Joueur libre'};
+  const kind = (p) => COMPN[p.comp] || (p.libre ? 'Joueur libre' : 'Compétiteur');
   function libresView() {
     return `<div class="panel"><h2>Créer une salle</h2>
-      <p class="note">Les joueurs s'inscrivent en direct sur <a href="libres.html" target="_blank">${location.host}/libres.html</a> avec le pseudo de leur inscription (Joueurs libres ou compétiteurs).</p>
-      <div class="fields"><div class="field"><label>Nom</label><input id="rName" placeholder="Tournoi Fall Guys #1" maxlength="60"></div>
-        <div class="field"><label>Jeu</label><input id="rGame" placeholder="Fall Guys" maxlength="40"></div>
+      <p class="note">Les joueurs s'inscrivent en direct sur <a href="libres.html" target="_blank">${location.host}/libres.html</a> avec le pseudo de leur inscription : tous les inscrits y ont accès. Crée ici les salles des mini-tournois et des parties TFT et Fortnite (une salle = un lobby, points selon le classement).</p>
+      <div class="fields"><div class="field"><label>Nom</label><input id="rName" placeholder="TFT · Lobby A · Partie 1" maxlength="60"></div>
+        <div class="field"><label>Jeu</label><input id="rGame" placeholder="TFT" maxlength="40"></div>
         <div class="field"><label>Places (0 = illimité)</label><input id="rCap" type="number" min="0" max="200" value="0"></div></div>
       <div class="field" style="margin-top:12px"><label>Infos pour les joueurs (code du lobby, horaire, règles…)</label><input id="rInfo" maxlength="300"></div>
       <p style="margin-top:12px"><button class="btn small" id="createRoom">Créer la salle</button></p></div>
@@ -121,13 +123,13 @@
         <div class="inl" style="margin-bottom:10px"><label>Jeu <input data-f="game" value="${esc(r.game)}"></label><label>Places <input type="number" data-f="capacity" value="${r.capacity}"></label>
           <label style="flex:1">Infos <input data-f="info" value="${esc(r.info)}" style="width:100%"></label><button class="btn small ghost" data-r="save">Enregistrer</button>
           <button class="btn small ${r.open ? 'ghost' : ''}" data-r="toggle">${r.open ? 'Fermer les inscriptions' : 'Rouvrir'}</button><button class="btn small ghost" data-r="delete">Supprimer</button></div>
-        <table class="t-table"><thead><tr><th>Joueur</th><th>Type</th><th>Points</th><th></th></tr></thead><tbody>
-          ${r.players.map((p) => `<tr><td><b>${esc(p.pseudo)}</b></td><td>${p.libre ? 'Joueur libre' : 'Compétiteur'}</td><td><input type="number" class="inl" style="width:80px;padding:6px;background:var(--bg);color:var(--text);border:1px solid var(--line-2)" data-pts="${esc(p.key)}" value="${p.points ?? ''}"></td>
+        <table class="t-table"><thead><tr><th>Joueur</th><th>Inscrit en</th><th>Points</th><th></th></tr></thead><tbody>
+          ${r.players.map((p) => `<tr><td><b>${esc(p.pseudo)}</b></td><td>${kind(p)}</td><td><input type="number" class="inl" style="width:80px;padding:6px;background:var(--bg);color:var(--text);border:1px solid var(--line-2)" data-pts="${esc(p.key)}" value="${p.points ?? ''}"></td>
             <td><button class="btn small ghost" style="padding:4px 10px" data-remove="${esc(p.key)}">Retirer</button></td></tr>`).join('') || '<tr><td colspan="4" class="note">Aucun inscrit.</td></tr>'}
         </tbody></table>
         <div class="inl" style="margin-top:10px"><button class="btn small" data-r="points">Enregistrer les points</button><input data-addp placeholder="Pseudo à ajouter"><button class="btn small ghost" data-r="add">Ajouter</button></div></div>`).join('')}
-      <div class="panel"><h2>Classement général</h2>${D.classement.length ? `<table class="t-table"><thead><tr><th>#</th><th>Joueur</th><th>Type</th><th>Salles</th><th>Points</th></tr></thead><tbody>
-        ${D.classement.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.pseudo)}</b></td><td>${p.libre ? 'Joueur libre' : 'Compétiteur'}</td><td class="n">${p.rooms}</td><td class="n"><b>${p.points}</b></td></tr>`).join('')}</tbody></table>` : '<p class="note">Pas encore de points.</p>'}</div>`;
+      <div class="panel"><h2>Classement général</h2>${D.classement.length ? `<table class="t-table"><thead><tr><th>#</th><th>Joueur</th><th>Inscrit en</th><th>Salles</th><th>Points</th></tr></thead><tbody>
+        ${D.classement.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.pseudo)}</b></td><td>${kind(p)}</td><td class="n">${p.rooms}</td><td class="n"><b>${p.points}</b></td></tr>`).join('')}</tbody></table>` : '<p class="note">Pas encore de points.</p>'}</div>`;
   }
 
   function render() {
