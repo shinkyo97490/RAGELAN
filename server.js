@@ -108,6 +108,8 @@ function cleanStream(b) {
     scoreA: num(b.scoreA, 9), scoreB: num(b.scoreB, 9), message: txt(b.message, 140),
     countdown: typeof b.countdown === 'string' && (b.countdown === '' || !isNaN(Date.parse(b.countdown))) ? b.countdown : undefined,
     next: Array.isArray(b.next) ? b.next.slice(0, 5).map((x) => String(x).slice(0, 80)) : undefined,
+    nextMatches: Array.isArray(b.nextMatches) ? b.nextMatches.filter((x) => /^[0-9a-f]{12}$/.test(x)).slice(0, 5) : undefined,
+    results: num(b.results, 6),
     bg: typeof b.bg === 'string' && (b.bg === '' || BG_RE.test(b.bg)) ? b.bg : undefined,
   };
   for (const [k, v] of Object.entries(upd)) if (v !== undefined) st[k] = v;
