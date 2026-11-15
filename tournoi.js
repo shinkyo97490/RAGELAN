@@ -7,11 +7,13 @@ const path = require('path');
 const crypto = require('crypto');
 
 const VALORANT_MAPS = ['Abyss', 'Ascent', 'Bind', 'Breeze', 'Corrode', 'Fracture', 'Haven', 'Icebox', 'Lotus', 'Pearl', 'Split', 'Sunset'];
-const BRACKET_COMPS = ['valorant', 'rocketleague', 'fc27'];
+const BRACKET_COMPS = ['valorant', 'rocketleague', 'fc27', 'fortnite'];
+const BO_OK = [1, 3, 5, 7, 9, 13];
+const BYE = 'BYE'; // place vide d'un tableau (participant exempté)
 
 module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBody, rateLimited}) {
   const FILE = path.join(DATA_DIR, 'tournoi.json');
-  const empty = () => ({settings: {valorant: {mapPool: []}}, groups: {}, matches: [], keys: {}, rooms: []});
+  const empty = () => ({settings: {valorant: {mapPool: []}}, groups: {}, matches: [], keys: {}, rooms: [], tft: null});
 
   function load() {
     try { return {...empty(), ...JSON.parse(fs.readFileSync(FILE, 'utf8'))}; } catch { return empty(); }
@@ -33,6 +35,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
   function nameMap() {
     const m = {};
     for (const r of loadDb()) m[r.id] = {name: r.teamName || r.players[0].pseudo, logo: r.logo ? `/api/logo/${r.id}` : ''};
+    m[BYE] = {name: 'Exempt', logo: ''};
     return m;
   }
   // Lien personnel de chaque équipe / joueur (créé à la première demande)
@@ -91,7 +94,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
   }
   function refreshReady(t, m) {
     if (m.status === 'waiting' && m.a && m.b) m.status = 'ready';
-    if (m.status === 'ready' && m.comp === 'valorant' && !m.veto) {
+    if (m.status === 'ready' && m.comp === 'valorant' && !m.veto && m.a !== BYE && m.b !== BYE) {
       const pool = (t.settings.valorant?.mapPool || []).slice();
       if (pool.length >= m.bo + (m.bo === 1 ? 1 : 2)) { m.veto = {pool, steps: []}; applyDecider(m); }
     }
@@ -106,13 +109,21 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
       if (!target) continue;
       target[link.slot] = who;
       refreshReady(t, target);
+      autoBye(t, target);
     }
+  }
+  // Match contre une place vide : le participant présent passe directement (dans le Winner comme dans le Loser bracket)
+  function autoBye(t, m) {
+    if (m.status === 'done' || !m.a || !m.b || (m.a !== BYE && m.b !== BYE)) return;
+    m.bye = true;
+    setResult(t, m, m.a === BYE ? 0 : 1, m.a === BYE ? 1 : 0);
   }
   function validScore(m, a, b) {
     if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0 || a > 99 || b > 99) return 'Score invalide.';
     if (m.bo > 1) {
       const need = Math.ceil(m.bo / 2);
-      if (Math.max(a, b) !== need || Math.min(a, b) >= need) return `En BO${m.bo}, le gagnant a ${need} map${need > 1 ? 's' : ''}.`;
+      const unit = m.comp === 'fortnite' ? 'manche' : 'map';
+      if (Math.max(a, b) !== need || Math.min(a, b) >= need) return `En BO${m.bo}, le gagnant a ${need} ${unit}${need > 1 ? 's' : ''}.`;
     } else if (a === b && m.stage === 'bracket') return "Pas d'égalité en phase finale.";
     return null;
   }
@@ -164,8 +175,10 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
   }
 
   function buildDouble(comp, seeds, bo, boFinal) {
-    const size = seeds.length, k = Math.log2(size);
-    const order = seedOrder(size).map((s) => seeds[s - 1]);
+    // Taille du tableau : puissance de 2 supérieure ; les places vides sont des exemptions (meilleures têtes de série)
+    let size = 4; while (size < seeds.length) size *= 2;
+    const k = Math.log2(size);
+    const order = seedOrder(size).map((s) => seeds[s - 1] || BYE);
     const ub = [];
     for (let r = 1; r <= k; r++) {
       const n = size / 2 ** r;
@@ -209,15 +222,62 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
     while (changed) {
       changed = false;
       for (const m of t.matches) {
-        if (m.comp !== comp || m.stage !== 'bracket' || m.status === 'done' || m.round !== 1 || m.bracket !== 'main') continue;
-        if ((m.a && !m.b) || (!m.a && m.b)) { m.bye = true; setResult(t, m, m.a ? 1 : 0, m.b ? 1 : 0); changed = true; }
+        if (m.comp !== comp || m.stage !== 'bracket' || m.status === 'done') continue;
+        if (m.round === 1 && m.bracket === 'main' && ((m.a && !m.b) || (!m.a && m.b))) { m.bye = true; setResult(t, m, m.a ? 1 : 0, m.b ? 1 : 0); changed = true; }
+        else if (m.a && m.b && (m.a === BYE || m.b === BYE)) { autoBye(t, m); changed = true; }
       }
     }
   }
 
+  // ---------- TFT : phase de manches avec remix des lobbies, puis finale ----------
+  // Points par manche selon la place : 1er 8 pts … 8e 1 pt
+  const tftPts = (place) => Math.max(0, 9 - place);
+  function tftStandings(ids, rounds) {
+    const rows = Object.fromEntries(ids.map((id) => [id, {id, points: 0, firsts: 0, top4: 0, played: 0, last: null, places: []}]));
+    for (const r of rounds) {
+      for (const [id, place] of Object.entries(r.results || {})) {
+        const row = rows[id];
+        if (!row) continue;
+        row.points += tftPts(place); row.played++; row.places.push(place);
+        if (place === 1) row.firsts++;
+        if (place <= 4) row.top4++;
+        row.last = place;
+      }
+    }
+    // Départage : points, nombre de 1res places, nombre de top 4, meilleure place à la dernière manche jouée
+    return Object.values(rows).sort((a, b) => b.points - a.points || b.firsts - a.firsts || b.top4 - a.top4 || (a.last ?? 99) - (b.last ?? 99));
+  }
+  // Répartition en lobbies : « serpentin » (1→A, 2→B, 3→B, 4→A…) pour mélanger les joueurs à chaque manche
+  function tftLobbies(ordered, size) {
+    const n = Math.max(1, Math.ceil(ordered.length / size));
+    const lobbies = Array.from({length: n}, () => []);
+    ordered.forEach((id, i) => { const row = Math.floor(i / n), col = i % n; lobbies[row % 2 ? n - 1 - col : col].push(id); });
+    return lobbies;
+  }
+  const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = crypto.randomInt(i + 1); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+  function tftNextLobbies(T, mode) {
+    const ids = T.players;
+    if (mode === 'random' || !T.p1.rounds.length) return tftLobbies(shuffle(ids), T.settings.lobbySize);
+    let lob = tftLobbies(tftStandings(ids, T.p1.rounds).map((r) => r.id), T.settings.lobbySize);
+    // Si la répartition est identique à la manche précédente, on mélange pour garantir le remix
+    const prev = T.p1.rounds[T.p1.rounds.length - 1].lobbies.map((l) => [...l].sort().join());
+    if (lob.length > 1 && lob.every((l) => prev.includes([...l].sort().join()))) lob = tftLobbies(shuffle(ids), T.settings.lobbySize);
+    return lob;
+  }
+  const roundDone = (r) => r.lobbies.every((l) => l.every((id) => r.results?.[id]));
+  function publicTft(t, names) {
+    const T = t.tft;
+    if (!T) return null;
+    const nm = (id) => ({id, ...(names[id] || {name: '?'})});
+    const rounds = (list) => list.map((r, i) => ({n: i + 1, done: roundDone(r), lobbies: r.lobbies.map((l) => l.map((id) => ({...nm(id), place: r.results?.[id] ?? null})))}));
+    return {phase: T.phase, settings: T.settings,
+      p1: {rounds: rounds(T.p1.rounds), standings: tftStandings(T.players, T.p1.rounds).map((r) => ({...r, ...nm(r.id)}))},
+      final: T.final ? {rounds: rounds(T.final.rounds), standings: tftStandings(T.final.players, T.final.rounds).map((r) => ({...r, ...nm(r.id)}))} : null};
+  }
+
   // ---------- Vues ----------
   function publicMatch(m, names) {
-    const side = (id) => (id ? {id, ...(names[id] || {name: '?'})} : null);
+    const side = (id) => (id ? {id, ...(names[id] || {name: '?'}), ...(id === BYE ? {bye: true} : {})} : null);
     const veto = m.veto ? vetoState(m) : null;
     return {id: m.id, comp: m.comp, stage: m.stage, group: m.group, bracket: m.bracket, round: m.round, roundName: m.roundName, order: m.order,
       bo: m.bo, a: side(m.a), b: side(m.b), status: m.status, scoreA: m.scoreA, scoreB: m.scoreB, bye: Boolean(m.bye),
@@ -234,7 +294,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
         matches: t.matches.filter((m) => m.comp === c).map((m) => publicMatch(m, names)),
       };
     }
-    return {comps, rooms: t.rooms.map(publicRoom), classement: classement(t)};
+    return {comps, tft: publicTft(t, names), rooms: t.rooms.map(publicRoom), classement: classement(t)};
   }
   function publicRoom(r) {
     return {id: r.id, name: r.name, game: r.game, capacity: r.capacity, info: r.info, open: r.open,
@@ -359,6 +419,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
     if (req.method === 'GET' && url.pathname === '/api/admin/tournoi') {
       const ent = {};
       for (const c of BRACKET_COMPS) ent[c] = entrants(c).map((e) => ({...e, key: keyFor(t, e.id)}));
+      ent.tft = entrants('tft');
       save(t);
       return send(res, 200, {...publicState(), entrants: ent, settings: t.settings, groupsRaw: t.groups, maps: VALORANT_MAPS,
         matchesRaw: t.matches.map((m) => ({id: m.id, reports: m.reports})),
@@ -387,7 +448,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
         if (t.matches.some((m) => m.comp === comp && m.stage === 'group' && m.status === 'done') && !b.force) return fail('Des matchs de poule ont déjà un résultat. Confirme pour tout remplacer.');
         const groups = (b.groups || []).map((g, i) => ({name: String(g.name || String.fromCharCode(65 + i)).slice(0, 20), teams: [...new Set((g.teams || []).filter((id) => known.has(id)))]}))
           .filter((g) => g.teams.length);
-        const bo = [1, 3, 5].includes(b.bo) ? b.bo : 1;
+        const bo = BO_OK.includes(b.bo) ? b.bo : 1;
         t.groups[comp] = groups;
         t.matches = t.matches.filter((m) => !(m.comp === comp && m.stage === 'group'));
         for (const g of groups) roundRobin(g.teams).forEach((pairs, r) => pairs.forEach(([x, y], i) => {
@@ -401,10 +462,10 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
         if (t.matches.some((m) => m.comp === comp && m.stage === 'bracket' && m.status === 'done' && !m.bye) && !b.force) return fail('La phase finale a déjà des résultats. Confirme pour la recréer.');
         const seeds = (b.seeds || []).filter((id) => known.has(id));
         if (new Set(seeds).size !== seeds.length || seeds.length < 2) return fail('Choisis au moins 2 participants différents.');
-        const bo = [1, 3, 5].includes(b.bo) ? b.bo : 1, boFinal = [1, 3, 5].includes(b.boFinal) ? b.boFinal : bo;
+        const bo = BO_OK.includes(b.bo) ? b.bo : 1, boFinal = BO_OK.includes(b.boFinal) ? b.boFinal : bo;
         let list;
         if (b.format === 'double') {
-          if (![4, 8, 16].includes(seeds.length)) return fail('La double élimination demande 4, 8 ou 16 participants.');
+          if (seeds.length < 3 || seeds.length > 16) return fail('La double élimination demande de 3 à 16 participants (places vides = exemptions).');
           list = buildDouble(comp, seeds, bo, boFinal);
         } else list = buildSingle(comp, seeds, bo, boFinal);
         t.matches = t.matches.filter((m) => !(m.comp === comp && m.stage === 'bracket'));
@@ -442,9 +503,90 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
           }
           m.status = m.a && m.b ? 'ready' : 'waiting'; m.scoreA = m.scoreB = null; m.reports = {}; delete m.doneAt;
         } else if (b.action === 'resetVeto') { delete m.veto; refreshReady(t, m); }
-        else if (b.action === 'bo' && [1, 3, 5].includes(b.bo) && m.status !== 'done') { m.bo = b.bo; delete m.veto; refreshReady(t, m); }
+        else if (b.action === 'bo' && BO_OK.includes(b.bo) && m.status !== 'done') { m.bo = b.bo; delete m.veto; refreshReady(t, m); }
         else return fail('Action inconnue.');
         return ok();
+      }
+      case '/api/admin/tournoi/tft': {
+        const known = new Set(entrants('tft').map((e) => e.id));
+        const T = t.tft;
+        const int = (v, lo, hi, d) => (Number.isInteger(Number(v)) && Number(v) >= lo && Number(v) <= hi ? Number(v) : d);
+        if (b.action === 'start') {
+          if (T && T.p1.rounds.some((r) => Object.keys(r.results || {}).length) && !b.force) return fail('Le tournoi TFT a déjà des résultats. Confirme pour tout recommencer.');
+          const players = (Array.isArray(b.players) && b.players.length ? b.players : [...known]).filter((id) => known.has(id));
+          if (players.length < 2) return fail('Il faut au moins 2 joueurs TFT inscrits et payés.');
+          const settings = {lobbySize: int(b.lobbySize, 2, 8, 8), p1Rounds: int(b.p1Rounds, 1, 15, 7), finalRounds: int(b.finalRounds, 1, 15, 9), finalSize: int(b.finalSize, 2, 8, 8), mode: b.mode === 'random' ? 'random' : 'snake'};
+          t.tft = {settings, phase: 'p1', players, p1: {rounds: []}, final: null};
+          t.tft.p1.rounds.push({lobbies: tftNextLobbies(t.tft, 'random'), results: {}});
+          return ok();
+        }
+        if (!T) return fail('Le tournoi TFT n\'est pas encore lancé.');
+        const cur = T.phase === 'final' ? T.final : T.p1;
+        if (b.action === 'result') {
+          const r = (b.phase === 'final' ? T.final : T.p1)?.rounds?.[Number(b.round)];
+          const lobby = r?.lobbies?.[Number(b.lobby)];
+          if (!lobby) return fail('Lobby introuvable.');
+          const places = b.places || {};
+          const vals = lobby.map((id) => Number(places[id]));
+          if (vals.some((v) => !Number.isInteger(v) || v < 1 || v > lobby.length) || new Set(vals).size !== vals.length) return fail(`Chaque joueur du lobby doit avoir une place différente, de 1 à ${lobby.length}.`);
+          lobby.forEach((id, i) => { r.results[id] = vals[i]; });
+          return ok();
+        }
+        if (b.action === 'clearLobby') {
+          const r = (b.phase === 'final' ? T.final : T.p1)?.rounds?.[Number(b.round)];
+          const lobby = r?.lobbies?.[Number(b.lobby)];
+          if (!lobby) return fail('Lobby introuvable.');
+          lobby.forEach((id) => delete r.results[id]);
+          return ok();
+        }
+        if (b.action === 'next') {
+          const last = cur.rounds[cur.rounds.length - 1];
+          if (last && !roundDone(last)) return fail('Saisis d\'abord les résultats de tous les lobbies de la manche en cours.');
+          if (T.phase === 'p1') {
+            if (cur.rounds.length >= T.settings.p1Rounds) return fail(`Les ${T.settings.p1Rounds} manches de la phase 1 sont jouées : lance la finale.`);
+            cur.rounds.push({lobbies: tftNextLobbies(T, b.mode || T.settings.mode), results: {}});
+          } else if (T.phase === 'final') {
+            if (cur.rounds.length >= T.settings.finalRounds) return fail('Toutes les manches de la finale sont jouées.');
+            cur.rounds.push({lobbies: [[...T.final.players]], results: {}});
+          } else return fail('Le tournoi est terminé.');
+          return ok();
+        }
+        if (b.action === 'undoRound') {
+          const last = cur.rounds[cur.rounds.length - 1];
+          if (!last || cur.rounds.length === 1) return fail('Rien à annuler.');
+          if (Object.keys(last.results || {}).length) return fail('Cette manche a déjà des résultats : efface-les d\'abord.');
+          cur.rounds.pop();
+          return ok();
+        }
+        if (b.action === 'final') {
+          if (T.phase !== 'p1') return fail('La finale est déjà lancée.');
+          const last = T.p1.rounds[T.p1.rounds.length - 1];
+          if (!last || !roundDone(last)) return fail('Termine d\'abord la manche en cours.');
+          if (T.p1.rounds.length < T.settings.p1Rounds && !b.force) return fail(`Seulement ${T.p1.rounds.length} manche(s) jouée(s) sur ${T.settings.p1Rounds}. Confirme pour lancer la finale quand même.`);
+          const finalists = tftStandings(T.players, T.p1.rounds).slice(0, T.settings.finalSize).map((r) => r.id);
+          T.final = {players: finalists, rounds: [{lobbies: [[...finalists]], results: {}}]};
+          T.phase = 'final';
+          return ok();
+        }
+        if (b.action === 'backToP1') {
+          if (T.phase !== 'final' || T.final.rounds.some((r) => Object.keys(r.results || {}).length)) return fail('La finale a déjà des résultats.');
+          T.final = null; T.phase = 'p1';
+          return ok();
+        }
+        if (b.action === 'finish') {
+          if (T.phase !== 'final') return fail('La finale n\'est pas lancée.');
+          const last = T.final.rounds[T.final.rounds.length - 1];
+          if (!roundDone(last)) return fail('Termine d\'abord la manche en cours.');
+          T.phase = 'done';
+          return ok();
+        }
+        if (b.action === 'reopen') { if (T.phase === 'done') T.phase = 'final'; return ok(); }
+        if (b.action === 'reset') {
+          if (!b.force) return fail('Tout le tournoi TFT (lobbies et résultats) sera effacé. Confirme pour recommencer à zéro.');
+          t.tft = null;
+          return ok();
+        }
+        return fail('Action inconnue.');
       }
       case '/api/admin/libres': {
         const room = t.rooms.find((r) => r.id === b.id);
