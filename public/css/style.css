@@ -433,3 +433,6 @@ button.chip.on { color: var(--orange); }
 .trow .tg { font-size: 21px; font-weight: 900; font-variation-settings: 'wdth' 90; line-height: 1.1; text-transform: uppercase; }
 .trow .tg small { display: block; margin-top: 4px; font-size: 14px; font-weight: 600; font-variation-settings: 'wdth' 100; text-transform: none; color: var(--text-2); }
 .prog-note { margin: 16px 0 0; font-size: 15px; line-height: 1.5; color: var(--text-2); }
+.night-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.45; }
+.night-list b { color: var(--orange); }
+.nightc .night-sub { font-size: 15px; color: var(--text-2); }
