@@ -15,6 +15,7 @@
    - `overlay.html?scene=starting` (« Le live commence bientôt » + compte à rebours + « À suivre »)
    - `overlay.html?scene=pause`
    - `overlay.html?scene=end`
+   - `overlay.html?scene=board` (classement / tableau du tournoi en plein écran)
    Sans `?scene=`, l'overlay suit la scène choisie dans le panneau de contrôle.
 
 ## Pendant le live (panneau de contrôle)
@@ -25,3 +26,9 @@
 - **Compte à rebours** : heure de reprise affichée sur les écrans « Début bientôt » / « Pause ».
 - **À suivre** : un match par ligne (5 maximum).
 - L'overlay se met à jour tout seul en 1 à 2 secondes.
+
+## Nouveautés : tournois et photos de fond
+- **Charger un match du tournoi** : dans « Depuis la gestion des tournois », choisis le match puis « Charger dans l'overlay ». Les noms, les logos des équipes, la phase (ex. « Winner · tour 2 ») et le format (BO) sont remplis tout seuls, scores à 0.
+- **« À suivre » automatique** : le bouton remplit la liste avec les prochains matchs du tournoi ; clique ensuite « Mettre à jour l'overlay ».
+- **Scène « Classement / tableau »** : affiche en plein écran, pour le jeu choisi dans « Match », les poules (avec logos) ou le tableau final (Winner / Loser bracket pour la double élimination), et pour TFT le classement + les lobbies de la manche en cours. Tout se met à jour seul toutes les 5 secondes et s'ajuste à l'écran.
+- **Photo de fond** des écrans Début bientôt / Pause / Fin / Classement : clique sur une photo proposée ou importe la tienne (PNG, JPG ou WebP, 5 Mo max, réduite automatiquement). Les photos importées sont gardées ; la croix les retire seulement de la liste.
