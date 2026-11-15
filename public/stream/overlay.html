@@ -48,7 +48,8 @@
   #full::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(40,12,2,.55), rgba(0,0,0,.92) 70%); }
   #full .glow { position: absolute; left: -10%; right: -10%; bottom: -200px; height: 420px; background: radial-gradient(ellipse at center, rgba(255,110,20,.45), transparent 65%); animation: pulse 4s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .55; transform: scale(1.05); } }
-  #full .inner { position: absolute; inset: 0 0 150px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #full .inner { position: absolute; inset: 24px 0 150px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #fWrap { display: flex; flex-direction: column; align-items: center; transform-origin: center center; }
   #full .rl { width: 600px; filter: drop-shadow(0 12px 40px rgba(0,0,0,.8)); }
   #full .title { font-size: 104px; margin-top: 6px; line-height: 1; }
   #full .sub { font-size: 34px; color: #ddd; margin-top: 10px; letter-spacing: .06em; }
@@ -67,8 +68,9 @@
   #full .vs b { font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: 32px; color: #ff8a1f; min-width: 90px; text-align: center; }
   #full .vs .w { color: #ffd23f; }
   #full .vs .l { color: #9a9a9a; }
-  #full .foot { position: absolute; bottom: 36px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 30px; }
-  #full .foot img { height: 70px; }
+  #full .foot { position: absolute; bottom: 0; left: 0; right: 0; height: 130px; display: flex; justify-content: center; align-items: center; gap: 30px;
+    background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.85) 35%); }
+  #full .foot img { height: 64px; }
   #full .foot .h { font-size: 28px; color: #c9a8ff; }
 
   /* ---------- Scène CLASSEMENT / TABLEAU ---------- */
@@ -128,13 +130,13 @@
     <div class="logo"><img src="../assets/logos/ragelan.png" alt=""></div>
     <div class="ticker" id="ticker"><span id="msg"></span></div>
     <div class="handle">twitch.tv/rushxptv</div>
-    <div class="partners"><span>PARTENAIRES</span><img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""></div>
+    <div class="partners"><span>PARTENAIRES</span><img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""><img src="../assets/logos/mils.png" alt=""></div>
   </div>
 </div>
 
 <div id="full" class="hide">
   <div class="glow"></div>
-  <div class="inner">
+  <div class="inner"><div id="fWrap">
     <img class="rl" src="../assets/logos/ragelan.png" alt="">
     <div class="title anton fire" id="fTitle"></div>
     <div class="sub" id="fSub"></div>
@@ -143,9 +145,9 @@
       <div class="next" id="fNext"><h3 class="anton">À SUIVRE</h3><div id="fNextList"></div></div>
       <div class="next hide" id="fRes"><h3 class="anton">DERNIERS RÉSULTATS</h3><div id="fResList"></div></div>
     </div>
-  </div>
+  </div></div>
   <div class="foot">
-    <img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt="">
+    <img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""><img src="../assets/logos/mils.png" alt="">
     <span class="h">twitch.tv/rushxptv · discord.gg/VMUXA2z5Y9</span>
   </div>
 </div>
@@ -295,7 +297,7 @@
         : `<div class="mt"><span class="g">${GN[c]} · ${esc(m.roundName)} · BO${m.bo}</span><div class="vs">${side(m.a, 'ta')}<b>VS</b>${side(m.b, 'tb')}</div></div>`).join('');
     } else nextHtml = (st.next || []).map((t) => `<div class="ln">${esc(t)}</div>`).join('');
     $('fNext').classList.toggle('hide', !nextHtml);
-    if ($('fNextList').dataset.h !== nextHtml) { $('fNextList').innerHTML = nextHtml; $('fNextList').dataset.h = nextHtml; }
+    if ($('fNextList').dataset.h !== nextHtml) { $('fNextList').innerHTML = nextHtml; $('fNextList').dataset.h = nextHtml;  document.querySelectorAll('#fNextList img, #fResList img').forEach((im) => im.addEventListener('load', fitFull, {once: true})); }
     const n = st.results || 0;
     const done = n ? all.filter(({m}) => m.status === 'done' && !m.bye && m.a && m.b).sort((x, y) => String(y.m.doneAt || '').localeCompare(String(x.m.doneAt || ''))).slice(0, n) : [];
     const resHtml = done.map(({c, m}) => {
@@ -303,8 +305,18 @@
       return `<div class="mt"><span class="g">${GN[c]} · ${esc(m.roundName)}</span><div class="vs"><span class="ta ${wa ? 'w' : wb ? 'l' : ''}">${esc(m.a.name)}${m.a.logo ? `<img src="${esc(m.a.logo)}" alt="">` : ''}</span><b>${m.scoreA} - ${m.scoreB}</b><span class="tb ${wb ? 'w' : wa ? 'l' : ''}">${m.b.logo ? `<img src="${esc(m.b.logo)}" alt="">` : ''}${esc(m.b.name)}</span></div></div>`;
     }).join('');
     $('fRes').classList.toggle('hide', !resHtml);
-    if ($('fResList').dataset.h !== resHtml) { $('fResList').innerHTML = resHtml; $('fResList').dataset.h = resHtml; }
+    if ($('fResList').dataset.h !== resHtml) { $('fResList').innerHTML = resHtml; $('fResList').dataset.h = resHtml;  document.querySelectorAll('#fNextList img, #fResList img').forEach((im) => im.addEventListener('load', fitFull, {once: true})); }
+    fitFull();
   }
+  // Réduit le contenu des écrans plein écran s'il est trop haut, pour ne jamais passer sous les logos partenaires
+  function fitFull() {
+    const w = $('fWrap'), box = w.parentElement;
+    w.style.transform = 'none';
+    const k = Math.min(1, box.clientHeight / Math.max(1, w.scrollHeight), box.clientWidth / Math.max(1, w.scrollWidth));
+    w.style.transform = k < 1 ? `scale(${k.toFixed(4)})` : 'none';
+  }
+  if (document.fonts) document.fonts.ready.then(() => fitFull());
+  document.querySelectorAll('#full img').forEach((im) => im.addEventListener('load', () => fitFull()));
 
   async function pollT() {
     const scene = forced || st?.scene;
@@ -322,6 +334,8 @@
       el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
       el.classList.remove('hide');
     } else el.classList.add('hide');
+    const vis = !el.classList.contains('hide');
+    if (vis !== el._vis) { el._vis = vis; fitFull(); }
   }
 
   async function poll() {
