@@ -53,7 +53,8 @@
     <div class="panel"><h2>Depuis la gestion des tournois</h2>
       <p class="note">Choisis un match du tournoi : noms, logos, phase et format sont remplis automatiquement (scores remis à 0).</p>
       <div class="row"><select id="tMatch" style="flex:1;min-width:320px"></select><button class="btn small" id="loadMatch" type="button">Charger dans l'overlay</button></div>
-      <p class="row" style="margin-top:12px"><button class="btn small ghost" id="autoNext" type="button">Remplir « À suivre » avec les prochains matchs</button><span class="note" style="margin:0" id="tInfo"></span></p>
+      <p class="row" style="margin-top:12px"><button class="btn small ghost" id="autoNext" type="button">« À suivre » : prochains matchs avec logos</button><span class="note" style="margin:0" id="tInfo"></span></p>
+      <p class="row" style="margin-top:8px"><label>Derniers résultats sur les écrans Début / Pause / Fin <select id="results"><option value="0">Ne pas afficher</option><option value="3">3 derniers matchs</option><option value="4">4 derniers matchs</option><option value="5">5 derniers matchs</option></select></label></p>
     </div>
 
     <div class="panel"><h2>Match</h2>
@@ -108,6 +109,8 @@
     }
     document.querySelectorAll('[data-scene]').forEach((b) => b.classList.toggle('ghost', b.dataset.scene !== st.scene));
     $('boardView').value = st.boardView || 'auto';
+    $('results').value = String(st.results || 0);
+    if ((st.nextMatches || []).length && !lastAuto) lastAuto = (st.next || []).join('\n');
     renderBgs();
   }
 
@@ -155,7 +158,7 @@
   });
 
   // ---------- Matchs de la gestion des tournois ----------
-  let TD = null;
+  let TD = null, lastAuto = '';
   const GN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', fortnite: 'Fortnite'};
   const ORDER = {ready: 0, reported: 0, disputed: 0, waiting: 1, done: 2};
   async function loadT() {
@@ -182,9 +185,14 @@
     const rows = [];
     for (const [c, C] of Object.entries(TD.comps)) for (const m of C.matches) if (m.status !== 'done' && m.a && m.b && !m.bye && m.id !== st.matchId) rows.push({c, m});
     rows.sort((x, y) => (ORDER[x.m.status] - ORDER[y.m.status]));
-    $('next').value = rows.slice(0, 5).map(({c, m}) => `${GN[c]} · ${m.roundName} · ${m.a.name} vs ${m.b.name}`).join('\n');
-    $('tInfo').textContent = rows.length ? 'Liste remplie : clique « Mettre à jour l\'overlay » pour l\'envoyer.' : 'Aucun match à venir.';
+    const top = rows.slice(0, 5);
+    if (!top.length) { $('tInfo').textContent = 'Aucun match à venir.'; return; }
+    lastAuto = top.map(({c, m}) => `${GN[c]} · ${m.roundName} · ${m.a.name} vs ${m.b.name}`).join('\n');
+    $('next').value = lastAuto;
+    send({next: lastAuto.split('\n'), nextMatches: top.map(({m}) => m.id)});
+    $('tInfo').textContent = '✔ Envoyé à l\'overlay (avec logos). Les matchs terminés affichent leur score.';
   });
+  $('results').addEventListener('change', () => send({results: Number($('results').value)}));
   $('boardView').addEventListener('change', () => send({boardView: $('boardView').value}));
 
   function countdownIso() {
@@ -199,7 +207,9 @@
 
   function form() {
     return {bugPos: $('bugPos').value, game: $('game').value, phase: $('phase').value, bo: Number($('bo').value), teamA: $('teamA').value, teamB: $('teamB').value,
-      message: $('message').value, countdown: countdownIso(), next: $('next').value.split('\n').map((s) => s.trim()).filter(Boolean)};
+      message: $('message').value, countdown: countdownIso(), next: $('next').value.split('\n').map((s) => s.trim()).filter(Boolean),
+      // Si la liste « À suivre » a été modifiée à la main, on n'affiche plus les matchs liés (logos)
+      ...($('next').value.trim() === lastAuto.trim() ? {} : {nextMatches: []})};
   }
 
   document.querySelectorAll('[data-scene]').forEach((b) => b.addEventListener('click', () => send({scene: b.dataset.scene})));

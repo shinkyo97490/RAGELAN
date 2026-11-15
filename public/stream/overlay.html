@@ -53,9 +53,20 @@
   #full .title { font-size: 104px; margin-top: 6px; line-height: 1; }
   #full .sub { font-size: 34px; color: #ddd; margin-top: 10px; letter-spacing: .06em; }
   #full .count { font-size: 92px; margin-top: 4px; }
-  #full .next { margin-top: 18px; background: rgba(0,0,0,.6); border: 2px solid #ff8a1f; border-radius: 14px; padding: 16px 34px; min-width: 760px; }
+  #full .lists { display: flex; gap: 28px; align-items: flex-start; justify-content: center; margin-top: 18px; }
+  #full .next { background: rgba(0,0,0,.6); border: 2px solid #ff8a1f; border-radius: 14px; padding: 16px 30px; min-width: 760px; }
   #full .next h3 { margin: 0 0 8px; font-size: 30px; color: #ff8a1f; letter-spacing: .15em; }
-  #full .next div { font-size: 30px; font-weight: 700; padding: 4px 0; }
+  #full .next .ln { font-size: 30px; font-weight: 700; padding: 4px 0; }
+  #full .mt { padding: 8px 0; border-top: 1px solid rgba(255,255,255,.12); }
+  #full .mt:first-of-type { border-top: none; }
+  #full .mt .g { display: block; font-size: 17px; letter-spacing: .14em; color: #ffb24d; text-transform: uppercase; margin-bottom: 4px; }
+  #full .vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; font-size: 28px; font-weight: 700; }
+  #full .vs .ta { display: flex; align-items: center; gap: 12px; justify-content: flex-end; text-align: right; }
+  #full .vs .tb { display: flex; align-items: center; gap: 12px; text-align: left; }
+  #full .vs img { width: 44px; height: 44px; object-fit: contain; flex: none; }
+  #full .vs b { font-family: 'Anton', Impact, sans-serif; font-weight: 400; font-size: 32px; color: #ff8a1f; min-width: 90px; text-align: center; }
+  #full .vs .w { color: #ffd23f; }
+  #full .vs .l { color: #9a9a9a; }
   #full .foot { position: absolute; bottom: 36px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 30px; }
   #full .foot img { height: 70px; }
   #full .foot .h { font-size: 28px; color: #c9a8ff; }
@@ -128,7 +139,10 @@
     <div class="title anton fire" id="fTitle"></div>
     <div class="sub" id="fSub"></div>
     <div class="count anton" id="fCount"></div>
-    <div class="next" id="fNext"><h3 class="anton">À SUIVRE</h3><div id="fNextList"></div></div>
+    <div class="lists">
+      <div class="next" id="fNext"><h3 class="anton">À SUIVRE</h3><div id="fNextList"></div></div>
+      <div class="next hide" id="fRes"><h3 class="anton">DERNIERS RÉSULTATS</h3><div id="fResList"></div></div>
+    </div>
   </div>
   <div class="foot">
     <img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt="">
@@ -190,8 +204,7 @@
       const s = SCENES[scene] || SCENES.starting;
       $('fTitle').textContent = s.title;
       $('fSub').textContent = st.message || s.sub;
-      $('fNext').classList.toggle('hide', !st.next.length);
-      $('fNextList').replaceChildren(...st.next.map((t) => Object.assign(document.createElement('div'), {textContent: t})));
+      renderLists();
     }
   }
 
@@ -267,9 +280,36 @@
     inner.style.transform = next === prev ? prev : next;
   }
   if (document.fonts) document.fonts.ready.then(fitBoard);
+  // « À suivre » avec logos et derniers résultats, depuis la gestion des tournois
+  const GN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', fortnite: 'Fortnite'};
+  function allMatches() { const out = []; for (const [c, C] of Object.entries(T?.comps || {})) for (const m of C.matches) out.push({c, m}); return out; }
+  const side = (t, cls) => `<span class="${cls}">${cls === 'ta' ? `${esc(t?.name || '?')}${t?.logo ? `<img src="${esc(t.logo)}" alt="">` : ''}` : `${t?.logo ? `<img src="${esc(t.logo)}" alt="">` : ''}${esc(t?.name || '?')}`}</span>`;
+  function renderLists() {
+    const ids = st.nextMatches || [];
+    const all = allMatches();
+    const linked = ids.map((id) => all.find((x) => x.m.id === id)).filter(Boolean);
+    let nextHtml;
+    if (linked.length) {
+      nextHtml = linked.map(({c, m}) => m.status === 'done'
+        ? `<div class="mt"><span class="g">${GN[c]} · ${esc(m.roundName)} · terminé</span><div class="vs">${side(m.a, 'ta')}<b>${m.scoreA} - ${m.scoreB}</b>${side(m.b, 'tb')}</div></div>`
+        : `<div class="mt"><span class="g">${GN[c]} · ${esc(m.roundName)} · BO${m.bo}</span><div class="vs">${side(m.a, 'ta')}<b>VS</b>${side(m.b, 'tb')}</div></div>`).join('');
+    } else nextHtml = (st.next || []).map((t) => `<div class="ln">${esc(t)}</div>`).join('');
+    $('fNext').classList.toggle('hide', !nextHtml);
+    if ($('fNextList').dataset.h !== nextHtml) { $('fNextList').innerHTML = nextHtml; $('fNextList').dataset.h = nextHtml; }
+    const n = st.results || 0;
+    const done = n ? all.filter(({m}) => m.status === 'done' && !m.bye && m.a && m.b).sort((x, y) => String(y.m.doneAt || '').localeCompare(String(x.m.doneAt || ''))).slice(0, n) : [];
+    const resHtml = done.map(({c, m}) => {
+      const wa = m.scoreA > m.scoreB, wb = m.scoreB > m.scoreA;
+      return `<div class="mt"><span class="g">${GN[c]} · ${esc(m.roundName)}</span><div class="vs"><span class="ta ${wa ? 'w' : wb ? 'l' : ''}">${esc(m.a.name)}${m.a.logo ? `<img src="${esc(m.a.logo)}" alt="">` : ''}</span><b>${m.scoreA} - ${m.scoreB}</b><span class="tb ${wb ? 'w' : wa ? 'l' : ''}">${m.b.logo ? `<img src="${esc(m.b.logo)}" alt="">` : ''}${esc(m.b.name)}</span></div></div>`;
+    }).join('');
+    $('fRes').classList.toggle('hide', !resHtml);
+    if ($('fResList').dataset.h !== resHtml) { $('fResList').innerHTML = resHtml; $('fResList').dataset.h = resHtml; }
+  }
+
   async function pollT() {
     const scene = forced || st?.scene;
-    if (scene !== 'board') return;
+    const wantsLists = scene !== 'match' && scene !== 'board' && ((st?.nextMatches || []).length || st?.results);
+    if (scene !== 'board' && !wantsLists) return;
     try { T = await (await fetch('/api/tournoi', {cache: 'no-store'})).json(); apply(); } catch (e) {}
   }
   setInterval(pollT, 5000);
@@ -285,7 +325,7 @@
   }
 
   async function poll() {
-    try { const first = !st; st = await (await fetch('/api/stream', {cache: 'no-store'})).json(); if ((forced || st.scene) === 'board' && (first || !T)) await pollT(); apply(); } catch (e) {}
+    try { const first = !st; st = await (await fetch('/api/stream', {cache: 'no-store'})).json(); if ((first || !T) && (forced || st.scene) !== 'match') await pollT(); apply(); } catch (e) {}
   }
   poll(); setInterval(poll, 1500); setInterval(tick, 250);
 </script>

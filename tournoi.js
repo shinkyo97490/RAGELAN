@@ -280,7 +280,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
     const side = (id) => (id ? {id, ...(names[id] || {name: '?'}), ...(id === BYE ? {bye: true} : {})} : null);
     const veto = m.veto ? vetoState(m) : null;
     return {id: m.id, comp: m.comp, stage: m.stage, group: m.group, bracket: m.bracket, round: m.round, roundName: m.roundName, order: m.order,
-      bo: m.bo, a: side(m.a), b: side(m.b), status: m.status, scoreA: m.scoreA, scoreB: m.scoreB, bye: Boolean(m.bye),
+      bo: m.bo, a: side(m.a), b: side(m.b), status: m.status, scoreA: m.scoreA, scoreB: m.scoreB, bye: Boolean(m.bye), doneAt: m.doneAt || null,
       reported: {a: Boolean(m.reports?.a), b: Boolean(m.reports?.b)},
       veto: veto && {maps: veto.maps, complete: veto.complete, steps: veto.steps}};
   }
