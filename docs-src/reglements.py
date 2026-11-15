@@ -85,9 +85,9 @@ arts = [
     ("ARTICLE 4 — FORMAT DE LA COMPÉTITION", [
         ("Déroulement", "Le tournoi se déroule sur deux jours, le samedi 21 et le dimanche 22 novembre 2026."),
         ("Phase de groupes", "Les équipes sont réparties en groupes. La composition des groupes, le nombre d'équipes qualifiées pour la phase finale et l'ordre des matchs sont communiqués par l'organisation avant le début du tournoi."),
-        ("Phase finale", "Les équipes qualifiées s'affrontent dans un arbre à double élimination."),
+        ("Phase finale", "Les équipes qualifiées s'affrontent dans un arbre à double élimination. La phase finale débute le samedi soir (horaire prévisionnel : 21h) et se poursuit le dimanche."),
         *DOUBLE_ELIM,
-        ("Format des matchs", "Tous les matchs se jouent en BO3 : la première équipe à remporter 2 cartes gagne le match."),
+        ("Format des matchs", "Les matchs de la phase de groupes se jouent en BO1 (une seule carte). Les matchs de la phase finale se jouent en BO3 : la première équipe à remporter 2 cartes gagne le match."),
         ("Cartes", "Le pool de cartes et la procédure de choix des cartes (bans / picks) sont communiqués par l'arbitre avant le début du tournoi."),
     ]),
     ("ARTICLE 5 — RÈGLES DE JEU SPÉCIFIQUES", [
@@ -103,7 +103,7 @@ arts = [
 ] + common_tail(7, "Cash prize total de 1 000 € : 600 € pour l'équipe classée première et 400 € pour l'équipe classée deuxième, à répartir entre les 5 joueurs de l'équipe.")
 T.append(tournament('valorant', 'VALORANT — 5V5', '#FF4655', [
     ('Format', 'Équipes de 5 joueurs (5v5) — 8 équipes, pas de remplaçant'),
-    ('Phases', 'Phase de groupes puis double élimination — matchs en BO3'),
+    ('Phases', 'Phase de groupes en BO1, puis double élimination en BO3'),
     ('Jours', 'Samedi 21 et dimanche 22 novembre 2026'),
     ('Tarif', "25 € par joueur (125 € par équipe)"),
     ('Cash prize', '1 000 € — 1er : 600 € · 2e : 400 €'),
@@ -125,7 +125,7 @@ arts = [
     ("ARTICLE 4 — FORMAT DE LA COMPÉTITION", [
         ("Déroulement", "Le tournoi se déroule le samedi 21 novembre 2026."),
         ("Phase de groupes", "Les équipes sont réparties en groupes. La composition des groupes, le nombre d'équipes qualifiées pour la phase finale et l'ordre des matchs sont communiqués par l'organisation avant le début du tournoi."),
-        ("Phase finale", "Les équipes qualifiées s'affrontent dans un arbre à double élimination."),
+        ("Phase finale", "Les équipes qualifiées s'affrontent dans un arbre à double élimination. La phase finale débute le samedi soir (horaire prévisionnel : 21h) et se poursuit le dimanche."),
         *DOUBLE_ELIM,
         ("Format des matchs", "Tous les matchs se jouent en BO5 : la première équipe à remporter 3 parties gagne le match."),
     ]),
