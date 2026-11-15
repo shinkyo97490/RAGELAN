@@ -1,9 +1,9 @@
 // Formulaire d'inscription : choix de la compétition, joueurs, règles mineurs, paiement Stripe
 (function () {
   const EVENT_DAY = new Date('2026-11-21T00:00:00Z');
-  const COLORS = {valorant: 'var(--valorant)', rocketleague: 'var(--rl)', fc27: 'var(--fc)', tft: 'var(--tft)', fortnite: 'var(--fortnite)'};
-  const INGAME = {valorant: 'Riot ID (ex. Pseudo#TAG) *', rocketleague: 'ID Epic Games / Steam *', fc27: 'EA ID *', tft: 'Riot ID (ex. Pseudo#TAG) *', fortnite: 'ID Epic Games *'};
-  const RULES = {valorant: 'reglements/valorant.html', rocketleague: 'reglements/rocketleague.html', fc27: 'reglements/fc27.html', tft: 'reglements/tft.html', fortnite: 'reglements/fortnite.html'};
+  const COLORS = {valorant: 'var(--valorant)', rocketleague: 'var(--rl)', fc27: 'var(--fc)', tft: 'var(--tft)', fortnite: 'var(--fortnite)', brawlstars: 'var(--brawl)'};
+  const INGAME = {valorant: 'Riot ID (ex. Pseudo#TAG) *', rocketleague: 'ID Epic Games / Steam *', fc27: 'EA ID *', tft: 'Riot ID (ex. Pseudo#TAG) *', fortnite: 'ID Epic Games *', brawlstars: 'Pseudo + tag Brawl Stars (ex. Pseudo #ABC123) *'};
+  const RULES = {valorant: 'reglements/valorant.html', rocketleague: 'reglements/rocketleague.html', fc27: 'reglements/fc27.html', tft: 'reglements/tft.html', fortnite: 'reglements/fortnite.html', brawlstars: 'reglements/brawlstars.html'};
 
   const $ = (s, el = document) => el.querySelector(s);
   const params = new URLSearchParams(location.search);

@@ -109,7 +109,7 @@
   }
 
   // ---------- Onglet Salles (jeu libre, mini-tournois, parties TFT et Fortnite) ----------
-  const COMPN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', tft: 'TFT', fortnite: 'Fortnite', libres: 'Joueur libre'};
+  const COMPN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', tft: 'TFT', fortnite: 'Fortnite', brawlstars: 'Brawl Stars', libres: 'Joueur libre'};
   const kind = (p) => COMPN[p.comp] || (p.libre ? 'Joueur libre' : 'Compétiteur');
   function libresView() {
     return `<div class="panel"><h2>Créer une salle</h2>

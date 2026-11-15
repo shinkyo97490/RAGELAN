@@ -18,6 +18,7 @@
   --libres: #f7941d;
   --tft: #e8b04a;
   --fortnite: #a66bff;
+  --brawl: #ffc21a;
   --mcdo: #ffc72c;
   --twitch: #a970ff;
   --max: 1240px;
@@ -436,3 +437,7 @@ button.chip.on { color: var(--orange); }
 .night-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.45; }
 .night-list b { color: var(--orange); }
 .nightc .night-sub { font-size: 15px; color: var(--text-2); }
+.game.wide { grid-column: 1 / -1; min-height: 0; justify-content: flex-start; }
+.game.wide .top { min-height: 0; padding-bottom: 0; }
+.game.wide .bottom { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 24px; }
+.game.wide .rule { display: none; }

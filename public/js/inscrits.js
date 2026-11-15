@@ -10,6 +10,7 @@
     {id: 'fc27', name: 'EA SPORTS FC 27 / FUT', unit: 'JOUEURS SOLO'},
     {id: 'tft', name: 'TFT', unit: 'JOUEURS SOLO'},
     {id: 'fortnite', name: 'FORTNITE', unit: 'DUOS', hue: 270},
+    {id: 'brawlstars', name: 'BRAWL STARS', unit: 'ÉQUIPES DE 3', hue: 45},
   ];
   let data = null, tab = 'valorant', q = '';
 

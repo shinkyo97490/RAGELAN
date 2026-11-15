@@ -6,6 +6,7 @@
     tft: {name: 'TFT', color: '#C9922E', day: 'sam'},
     fc27: {name: 'EA Sports FC 27 FUT', color: '#00A84F', day: 'dim'},
     fortnite: {name: 'Fortnite', color: '#8A4FE0', day: 'dim'},
+    brawlstars: {name: 'Brawl Stars', color: '#D9A000', day: 'dim'},
   };
   const pwd = sessionStorage.getItem('rl-admin') || '';
   const $ = (s) => document.querySelector(s);
