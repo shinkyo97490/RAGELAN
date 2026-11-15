@@ -52,7 +52,7 @@ ${body}
         <p>Joueurs : ${reg.players.map((p) => esc(p.pseudo)).join(', ')}<br>Montant réglé : ${reg.amount} €</p>
         ${bestOf.length ? box(`<b>Menu Best Of McDonald's offert</b> à ${bestOf.map((p) => esc(p.pseudo)).join(', ')} : vous faites partie des 30 premiers inscrits !`, '#ffc72c') : ''}
         ${teamUrl ? `<p>Pendant la LAN, ta page ${reg.teamName ? "d'équipe" : 'joueur'} te donne accès à tes matchs${reg.competition === 'valorant' ? ', au ban de maps' : ''} et à la déclaration des scores. Garde ce lien :</p>${btn(teamUrl, reg.teamName ? "Ma page d'équipe" : 'Ma page joueur')}` : ''}
-        ${reg.competition === 'libres' ? `<p>Les salles des mini-tournois s'ouvrent en direct pendant la LAN : ${btn(`${BASE_URL}/libres.html`, 'Salles Joueurs libres')}</p>` : ''}
+        <p>Jeu libre et mini-tournois inclus pour tous les inscrits : les salles s'ouvrent en direct pendant la LAN.${['tft', 'fortnite'].includes(reg.competition) ? ` Les parties ${reg.competition === 'tft' ? 'TFT' : 'Fortnite'} et leurs scores s'y retrouvent aussi.` : ''}</p>${btn(`${BASE_URL}/libres.html`, 'Salles et mini-tournois')}
         ${practical(reg)}`;
       return mail(contacts(reg), `Inscription confirmée · RAGE LAN 2026 · ${COMPETITIONS[reg.competition].name}`, "C'est bon, tu es inscrit !", body);
     },

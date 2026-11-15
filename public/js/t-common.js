@@ -1,7 +1,7 @@
 // Fonctions partagées par les pages de tournoi (résultats, admin, équipe, salle de match)
 window.T = (function () {
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-  const COLORS = {valorant: 'var(--valorant)', rocketleague: 'var(--rl)', fc27: 'var(--fc)', libres: 'var(--orange)'};
+  const COLORS = {valorant: 'var(--valorant)', rocketleague: 'var(--rl)', fc27: 'var(--fc)', tft: 'var(--tft)', fortnite: 'var(--fortnite)', libres: 'var(--orange)'};
   const STATUS = {waiting: 'En attente', ready: 'À jouer', reported: '1 score déclaré', disputed: 'Scores différents', done: 'Terminé'};
 
   const team = (t) => (t ? `<span class="t-team">${t.logo ? `<img src="${esc(t.logo)}" alt="">` : ''}<span>${esc(t.name)}</span></span>` : '<span class="t-team" style="color:var(--muted)">À déterminer</span>');

@@ -245,19 +245,19 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
     for (const r of t.rooms) for (const p of r.players) {
       const pts = r.points?.[p.key];
       if (pts === undefined || pts === null) continue;
-      tot[p.key] = tot[p.key] || {pseudo: p.pseudo, libre: p.libre, points: 0, rooms: 0};
+      tot[p.key] = tot[p.key] || {pseudo: p.pseudo, libre: p.libre, comp: p.comp, points: 0, rooms: 0};
       tot[p.key].points += pts; tot[p.key].rooms++;
     }
     return Object.values(tot).sort((a, b) => b.points - a.points);
   }
 
-  // Joueurs autorisés à rejoindre une salle Joueurs libres : tous les joueurs inscrits et payés
+  // Joueurs autorisés à rejoindre une salle (jeu libre, mini-tournois, parties TFT et Fortnite) : tous les joueurs inscrits et payés
   function findPlayer(pseudo) {
     const n = String(pseudo || '').trim().toLowerCase();
     if (!n) return null;
     for (const r of loadDb()) {
       if (r.status !== 'paid') continue;
-      for (const p of r.players) if (p.pseudo.toLowerCase() === n) return {pseudo: p.pseudo, key: `${r.id}:${r.players.indexOf(p)}`, libre: r.competition === 'libres'};
+      for (const p of r.players) if (p.pseudo.toLowerCase() === n) return {pseudo: p.pseudo, key: `${r.id}:${r.players.indexOf(p)}`, libre: r.competition === 'libres', comp: r.competition};
     }
     return null;
   }
@@ -491,5 +491,5 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
     return `/equipe.html?id=${regId}&k=${k}`;
   }
 
-  return {publicApi, adminApi, vetoPlan, teamPath};
+  return {publicApi, adminApi, vetoPlan, teamPath, BRACKET_COMPS};
 };

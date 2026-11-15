@@ -27,10 +27,14 @@ const SMTP = {host: process.env.SMTP_HOST || '', port: Number(process.env.SMTP_P
   fromName: process.env.SMTP_FROM_NAME || 'RAGE LAN 2026 · RushXP'};
 
 const COMPETITIONS = {
-  valorant: {name: 'Valorant', team: true, size: 5, capacity: 8, unit: 'équipes', price: 25},
-  rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 8, unit: 'équipes', price: 20},
+  valorant: {name: 'Valorant', team: true, size: 5, capacity: 8, unit: 'équipes', price: 25, logo: true},
+  rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 8, unit: 'équipes', price: 20, logo: true},
   fc27: {name: 'EA Sports FC 27 FUT', team: false, size: 1, capacity: 24, unit: 'joueurs', price: 20},
-  libres: {name: 'Joueurs libres', team: false, size: 1, capacity: 40, unit: 'places', price: 20},
+  tft: {name: 'TFT', team: false, size: 1, capacity: 16, unit: 'joueurs', price: 20},
+  fortnite: {name: 'Fortnite', team: true, size: 2, capacity: 12, unit: 'duos', price: 20},
+  // Ancienne formule payante, remplacée par TFT et Fortnite : le jeu libre est inclus pour tous les inscrits.
+  // Gardée (masquée, fermée) pour les anciennes inscriptions éventuelles.
+  libres: {name: 'Joueurs libres', team: false, size: 1, capacity: 0, unit: 'places', price: 20, hidden: true},
 };
 
 const ROOT = __dirname;
@@ -94,7 +98,7 @@ function cleanStream(b) {
   const num = (v, max) => (Number.isInteger(v) && v >= 0 && v <= max ? v : undefined);
   const upd = {
     scene: ['match', 'starting', 'pause', 'end'].includes(b.scene) ? b.scene : undefined,
-    game: ['valorant', 'rocketleague', 'fc27', 'libres'].includes(b.game) ? b.game : undefined,
+    game: ['valorant', 'rocketleague', 'fc27', 'tft', 'fortnite', 'libres'].includes(b.game) ? b.game : undefined,
     bugPos: ['top', 'bottom', 'hidden'].includes(b.bugPos) ? b.bugPos : undefined,
     phase: txt(b.phase, 40), bo: num(b.bo, 9), teamA: txt(b.teamA, 30), teamB: txt(b.teamB, 30),
     scoreA: num(b.scoreA, 9), scoreB: num(b.scoreB, 9), message: txt(b.message, 140),
@@ -133,7 +137,8 @@ function status() {
   const now = Date.now();
   const competitions = {};
   for (const [id, c] of Object.entries(COMPETITIONS)) {
-    competitions[id] = {name: c.name, capacity: c.capacity, unit: c.unit, price: c.price, size: c.size, team: c.team,
+    if (c.hidden) continue;
+    competitions[id] = {name: c.name, capacity: c.capacity, unit: c.unit, price: c.price, size: c.size, team: c.team, logo: Boolean(c.logo),
       remaining: Math.max(0, c.capacity - usedUnits(db, id))};
   }
   return {
@@ -159,7 +164,7 @@ const PHONE_RE = /^[+\d][\d\s.-]{5,19}$/;
 function validate(body) {
   const errors = [];
   const comp = COMPETITIONS[body.competition];
-  if (!comp) return {errors: ['Compétition inconnue.']};
+  if (!comp || comp.hidden) return {errors: ['Compétition inconnue.']};
   const teamName = comp.team ? str(body.teamName, 40) : '';
   if (comp.team && teamName.length < 2) errors.push("Indique le nom de l'équipe.");
   if (!Array.isArray(body.players) || body.players.length !== comp.size) {
@@ -198,8 +203,8 @@ function validate(body) {
     out.autorisationRecue = false;
     return out;
   });
-  const logo = comp.team ? parseLogo(body.logo) : null;
-  if (comp.team && !logo) errors.push("Ajoute le logo de l'équipe (PNG, JPG ou WebP, 2 Mo maximum).");
+  const logo = comp.team && body.logo ? parseLogo(body.logo) : null;
+  if (comp.team && (comp.logo || body.logo) && !logo) errors.push("Ajoute le logo de l'équipe (PNG, JPG ou WebP, 2 Mo maximum).");
   const payMode = comp.team && body.payMode === 'split' ? 'split' : 'team';
   if (body.reglement !== true) errors.push('Tu dois accepter le règlement.');
   if (body.rgpd !== true) errors.push('Tu dois accepter la politique de confidentialité.');
@@ -390,7 +395,7 @@ function notify(kind, id, idx) {
     let msg;
     const links = reg.payMode === 'split' ? reg.players.map((p, i) => splitLink(reg, i)) : [];
     try {
-      if (kind === 'confirm') msg = EMAILS.confirm(reg, COMPETITIONS[reg.competition].team || reg.competition === 'fc27' ? BASE_URL + TOURNOI.teamPath(reg.id) : '');
+      if (kind === 'confirm') msg = EMAILS.confirm(reg, TOURNOI.BRACKET_COMPS.includes(reg.competition) ? BASE_URL + TOURNOI.teamPath(reg.id) : '');
       else if (kind === 'split') msg = EMAILS.splitCaptain(reg, links);
       else if (kind === 'splitPlayer') msg = EMAILS.splitPlayer(reg, idx, links[idx]);
       else if (kind === 'playerPaid') msg = EMAILS.playerPaid(reg, idx);
@@ -538,9 +543,10 @@ async function api(req, res, url) {
     const paid = loadDb().filter((r) => r.status === 'paid').sort((a, b) => String(a.paidAt || a.createdAt).localeCompare(String(b.paidAt || b.createdAt)));
     const out = {};
     for (const [id, c] of Object.entries(COMPETITIONS)) {
+      if (c.hidden) continue;
       const regs = paid.filter((r) => r.competition === id);
       out[id] = c.team
-        ? {team: true, size: c.size, maxTeams: c.capacity, places: c.capacity * c.size,
+        ? {team: true, size: c.size, unit: c.unit, maxTeams: c.capacity, places: c.capacity * c.size,
           teams: regs.map((r) => ({name: r.teamName, logo: r.logo ? `/api/logo/${r.id}` : '', players: r.players.map((p) => p.pseudo)}))}
         : {team: false, places: c.capacity, players: regs.flatMap((r) => r.players.map((p) => p.pseudo))};
     }
