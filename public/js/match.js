@@ -42,7 +42,7 @@
   function reportHtml() {
     if (m.status === 'done') return `<div class="panel"><h2>Résultat validé</h2><div class="alert ok">${esc(m.a.name)} ${m.scoreA} - ${m.scoreB} ${esc(m.b.name)}</div></div>`;
     if (m.status === 'waiting') return '<div class="panel"><p>L\'adversaire n\'est pas encore connu.</p></div>';
-    const label = m.bo > 1 ? 'Maps gagnées' : m.comp === 'valorant' ? 'Rounds' : 'Buts';
+    const label = m.comp === 'fortnite' ? 'Manches gagnées' : m.bo > 1 ? 'Maps gagnées' : m.comp === 'valorant' ? 'Rounds' : 'Buts';
     const mine = m.myReport, other = m.otherReport;
     return `<div class="panel"><h2>Déclarer le score</h2>
       ${m.status === 'disputed' ? '<div class="alert err">Les deux équipes ont déclaré des scores différents. Corrigez ou appelez un admin.</div>' : ''}

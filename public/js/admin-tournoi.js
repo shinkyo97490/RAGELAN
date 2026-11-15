@@ -33,13 +33,16 @@
   function compView(c) {
     const ent = D.entrants[c];
     const C = D.comps[c];
-    const o = opts[c] = opts[c] || {nGroups: Math.max(1, (D.groupsRaw[c] || []).length || 2), bo: 1, format: c === 'valorant' ? 'double' : 'single', bboBo: c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, boFinal: c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, nSeeds: 4};
+    const FN = c === 'fortnite';
+    const o = opts[c] = opts[c] || {nGroups: Math.max(1, (D.groupsRaw[c] || []).length || 2), bo: 1, format: c === 'valorant' || FN ? 'double' : 'single',
+      bboBo: FN ? 9 : c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, boFinal: FN ? 13 : c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, nSeeds: FN ? Math.max(3, Math.min(16, ent.length || 12)) : 4};
+    const BOS = FN ? [9, 13, 7, 5, 3, 1] : [1, 3, 5];
     if (!draftGroups[c]) {
       draftGroups[c] = {};
       (D.groupsRaw[c] || []).forEach((g) => g.teams.forEach((id) => (draftGroups[c][id] = g.name)));
     }
     const letters = Array.from({length: o.nGroups}, (_, i) => String.fromCharCode(65 + i));
-    const unit = c === 'fc27' ? 'joueurs' : 'équipes';
+    const unit = c === 'fc27' ? 'joueurs' : FN ? 'duos' : 'équipes';
     const bracketMatches = C.matches.filter((m) => m.stage === 'bracket');
     const seeds = draftSeeds[c] = draftSeeds[c] || [];
     while (seeds.length < o.nSeeds) seeds.push('');
@@ -57,7 +60,7 @@
       <div class="chips" id="pool">${D.maps.map((m) => `<button type="button" class="chip ${D.settings.valorant.mapPool.includes(m) ? 'on' : ''}" data-map="${m}">${m}</button>`).join('')}</div>
       <p style="margin-top:12px"><button class="btn small" id="savePool">Enregistrer le map pool (${D.settings.valorant.mapPool.length} maps)</button></p></div>` : ''}
 
-    <div class="panel"><h2>Phase de groupes</h2>
+    ${FN ? '' : `<div class="panel"><h2>Phase de groupes</h2>
       <div class="inl"><label>Nombre de poules <input type="number" min="1" max="8" value="${o.nGroups}" data-opt="nGroups"></label>
         <label>Format des matchs <select data-opt="bo">${[1, 3, 5].map((b) => `<option ${o.bo === b ? 'selected' : ''} value="${b}">BO${b}</option>`).join('')}</select></label>
         <button class="btn small ghost" id="shuffle">Répartir au hasard</button></div>
@@ -65,15 +68,15 @@
       <p style="margin-top:12px" class="inl"><button class="btn small" id="saveGroups">Enregistrer les poules et créer les matchs</button>
         ${C.groups.length ? '<button class="btn small ghost" data-clear="group">Supprimer la phase de groupes</button>' : ''}</p>
       ${C.groups.length ? `<div style="margin-top:16px">${groupsHtml(C.groups)}</div>` : ''}
-    </div>
+    </div>`}
 
-    <div class="panel"><h2>Phase finale</h2>
+    <div class="panel"><h2>${FN ? 'Tableau · 2v2 Realistic' : 'Phase finale'}</h2>
       <div class="inl"><label>Format <select data-opt="format"><option value="single" ${o.format === 'single' ? 'selected' : ''}>Élimination directe</option><option value="double" ${o.format === 'double' ? 'selected' : ''}>Double élimination</option></select></label>
         <label>Qualifiés <input type="number" min="2" max="32" value="${o.nSeeds}" data-opt="nSeeds"></label>
-        <label>Matchs <select data-opt="bboBo">${[1, 3, 5].map((b) => `<option ${o.bboBo === b ? 'selected' : ''} value="${b}">BO${b}</option>`).join('')}</select></label>
-        <label>Finale <select data-opt="boFinal">${[1, 3, 5].map((b) => `<option ${o.boFinal === b ? 'selected' : ''} value="${b}">BO${b}</option>`).join('')}</select></label>
-        ${C.groups.length ? '<button class="btn small ghost" id="fromGroups">Remplir depuis les poules</button>' : ''}</div>
-      <p class="note">Tête de série 1 en haut. 1 affronte le dernier, 2 l'avant-dernier… ${o.format === 'double' ? 'Double élimination : 4, 8 ou 16 qualifiés.' : 'S\'il manque des équipes, les meilleures têtes de série sont exemptées du 1er tour.'}</p>
+        <label>Matchs <select data-opt="bboBo">${BOS.map((b) => `<option ${o.bboBo === b ? 'selected' : ''} value="${b}">BO${b}</option>`).join('')}</select></label>
+        <label>${o.format === 'double' ? 'Grande finale' : 'Finale'} <select data-opt="boFinal">${BOS.map((b) => `<option ${o.boFinal === b ? 'selected' : ''} value="${b}">BO${b}</option>`).join('')}</select></label>
+        ${C.groups.length ? '<button class="btn small ghost" id="fromGroups">Remplir depuis les poules</button>' : ''}<button class="btn small ghost" id="drawSeeds">Tirage au sort</button></div>
+      <p class="note">Tête de série 1 en haut. 1 affronte le dernier, 2 l'avant-dernier… ${o.format === 'double' ? 'Double élimination de 3 à 16 participants : s\'il en manque pour remplir le tableau (ex. 12 sur 16), les meilleures têtes de série sont exemptées du 1er tour, en Winner comme en Loser.' : 'S\'il manque des équipes, les meilleures têtes de série sont exemptées du 1er tour.'}${FN ? ' Fortnite : matchs en BO9 (premier à 5 manches), grande finale en BO13 (premier à 7).' : ''}</p>
       <div class="t-grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px">${seeds.map((s, i) => `<label class="inl"><b style="width:28px">${i + 1}</b><select data-seed="${i}" style="flex:1"><option value="">—</option>${ent.map((e) => `<option value="${e.id}" ${s === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select></label>`).join('')}</div>
       <p style="margin-top:12px" class="inl"><button class="btn small" id="saveBracket">Créer la phase finale</button>${bracketMatches.length ? '<button class="btn small ghost" data-clear="bracket">Supprimer la phase finale</button>' : ''}</p>
       ${bracketMatches.length ? `<div style="margin-top:16px">${T.bracketHtml(C.matches)}</div>` : ''}
@@ -101,11 +104,71 @@
         <div class="inl">
           ${m.a && m.b ? `<input type="number" min="0" max="99" data-sa value="${m.scoreA ?? ''}"> - <input type="number" min="0" max="99" data-sb value="${m.scoreB ?? ''}"><button class="btn small" data-do="score">Valider le score</button>` : ''}
           ${m.status !== 'waiting' ? '<button class="btn small ghost" data-do="reset">Réinitialiser</button>' : ''}
-          ${m.status !== 'done' ? `<select data-do="bo">${[1, 3, 5].map((b) => `<option value="${b}" ${m.bo === b ? 'selected' : ''}>BO${b}</option>`).join('')}</select>` : ''}
+          ${m.status !== 'done' ? `<select data-do="bo">${(m.comp === 'fortnite' ? [9, 13, 7, 5, 3, 1] : [1, 3, 5]).map((b) => `<option value="${b}" ${m.bo === b ? 'selected' : ''}>BO${b}</option>`).join('')}</select>` : ''}
           ${m.comp === 'valorant' && m.veto && m.status !== 'done' ? '<button class="btn small ghost" data-do="resetVeto">Refaire le ban</button>' : ''}
           ${la ? `<button class="btn small ghost" data-copy="${esc(la)}">Salle ${esc(m.a.name)}</button>` : ''}${lb ? `<button class="btn small ghost" data-copy="${esc(lb)}">Salle ${esc(m.b.name)}</button>` : ''}
         </div></div>`;
     }).join('');
+  }
+
+  // ---------- Onglet TFT : phase 1 en manches (remix des lobbies), puis finale ----------
+  const tftOpt = {p1Rounds: 7, finalRounds: 9, finalSize: 8, lobbySize: 8, mode: 'snake'};
+  function standingsTable(rows, qualif) {
+    if (!rows.length) return '<p class="note">Pas encore de résultats.</p>';
+    return `<table class="t-table"><thead><tr><th>#</th><th>Joueur</th><th>Pts</th><th>Top 1</th><th>Top 4</th><th>Manches</th><th>Places</th></tr></thead><tbody>
+      ${rows.map((r, i) => `<tr ${qualif && i < qualif ? 'style="background:rgba(232,176,74,.12)"' : ''}><td>${i + 1}</td><td><b>${esc(r.name)}</b></td><td class="n"><b>${r.points}</b></td><td class="n">${r.firsts}</td><td class="n">${r.top4}</td><td class="n">${r.played}</td><td class="n" style="font-family:var(--mono);font-size:13px">${r.places.join(' · ') || '—'}</td></tr>`).join('')}</tbody></table>`;
+  }
+  function roundsAdmin(phase, rounds) {
+    return rounds.slice().reverse().map((r) => {
+      const ri = r.n - 1;
+      return `<details ${r === rounds[rounds.length - 1] ? 'open' : ''} class="t-card" style="margin-bottom:10px"><summary style="cursor:pointer"><b>Manche ${r.n}</b> ${r.done ? '<span class="pill done">Terminée</span>' : '<span class="pill ready">En cours</span>'}</summary>
+        <div class="t-grid" style="margin-top:10px">${r.lobbies.map((l, li) => `<div class="t-card" data-lobby="${li}" data-round="${ri}" data-phase="${phase}"><h3>${rounds === D.tft.final?.rounds ? 'Lobby finale' : `Lobby ${String.fromCharCode(65 + li)}`} · ${l.length} joueurs</h3>
+          <table class="t-table"><thead><tr><th>Joueur</th><th>Place</th><th>Pts</th></tr></thead><tbody>${l.map((p) => `<tr><td>${esc(p.name)}</td><td><select data-place="${p.id}"><option value="">—</option>${l.map((_, k) => `<option ${p.place === k + 1 ? 'selected' : ''}>${k + 1}</option>`).join('')}</select></td><td class="n">${p.place ? 9 - p.place : ''}</td></tr>`).join('')}</tbody></table>
+          <p class="inl" style="margin-top:8px"><button class="btn small" data-tft="result">Enregistrer les places</button><button class="btn small ghost" data-tft="clearLobby">Effacer</button></p></div>`).join('')}</div></details>`;
+    }).join('');
+  }
+  function tftView() {
+    const X = D.tft, ent = D.entrants.tft || [];
+    if (!X) return `<div class="panel"><h2>TFT · ${ent.length} joueur${ent.length > 1 ? 's' : ''} payé${ent.length > 1 ? 's' : ''}</h2>
+      <div class="chips">${ent.map((e) => `<span class="chip">${esc(e.name)}</span>`).join('') || '<span class="note">Aucun joueur inscrit et payé.</span>'}</div>
+      <p class="note" style="margin-top:12px">Phase 1 : chaque manche se joue en lobbies de 8 ; après chaque manche, les lobbies sont remixés. Points : 1er 8 pts … 8e 1 pt. Le top 8 va en finale (lobby unique), points remis à zéro.</p>
+      <div class="inl"><label>Manches phase 1 <input type="number" min="1" max="15" value="${tftOpt.p1Rounds}" data-topt="p1Rounds"></label>
+        <label>Manches finale <input type="number" min="1" max="15" value="${tftOpt.finalRounds}" data-topt="finalRounds"></label>
+        <label>Qualifiés finale <input type="number" min="2" max="8" value="${tftOpt.finalSize}" data-topt="finalSize"></label>
+        <label>Joueurs par lobby <input type="number" min="2" max="8" value="${tftOpt.lobbySize}" data-topt="lobbySize"></label>
+        <label>Remix <select data-topt="mode"><option value="snake" ${tftOpt.mode === 'snake' ? 'selected' : ''}>Selon le classement (serpentin)</option><option value="random" ${tftOpt.mode === 'random' ? 'selected' : ''}>Aléatoire</option></select></label></div>
+      <p style="margin-top:12px"><button class="btn" data-tft="start">Lancer le tournoi TFT (manche 1, lobbies au hasard)</button></p></div>`;
+    const S = X.settings, p1 = X.p1, fin = X.final;
+    const lastP1 = p1.rounds[p1.rounds.length - 1];
+    const lastF = fin && fin.rounds[fin.rounds.length - 1];
+    return `<div class="panel"><h2>TFT · ${X.phase === 'p1' ? `Phase 1 · manche ${p1.rounds.length}/${S.p1Rounds}` : X.phase === 'final' ? `Finale · manche ${fin.rounds.length}/${S.finalRounds}` : 'Tournoi terminé'}</h2>
+      <p class="note">Remix : ${S.mode === 'random' ? 'aléatoire' : 'selon le classement (serpentin)'} · ${S.lobbySize} joueurs par lobby · finale top ${S.finalSize}. Saisis la place de chaque joueur à la fin de chaque partie.</p>
+      <p class="inl">${X.phase === 'p1' ? `${p1.rounds.length < S.p1Rounds ? `<button class="btn small" data-tft="next" ${lastP1.done ? '' : 'disabled'}>Manche suivante (remix des lobbies)</button>` : ''}
+          <button class="btn small ${p1.rounds.length >= S.p1Rounds ? '' : 'ghost'}" data-tft="final" ${lastP1.done ? '' : 'disabled'}>Lancer la finale (top ${S.finalSize})</button>
+          <button class="btn small ghost" data-tft="undoRound">Annuler la dernière manche (vide)</button>`
+        : X.phase === 'final' ? `${fin.rounds.length < S.finalRounds ? `<button class="btn small" data-tft="next" ${lastF.done ? '' : 'disabled'}>Manche suivante de la finale</button>` : `<button class="btn small" data-tft="finish" ${lastF.done ? '' : 'disabled'}>Clôturer le tournoi</button>`}
+          <button class="btn small ghost" data-tft="undoRound">Annuler la dernière manche (vide)</button><button class="btn small ghost" data-tft="backToP1">Revenir à la phase 1</button>`
+        : '<button class="btn small ghost" data-tft="reopen">Rouvrir la finale</button>'}
+        <button class="btn small ghost" data-tft="reset">Tout recommencer</button></p></div>
+    ${fin ? `<div class="panel"><h2>Finale · classement</h2>${standingsTable(fin.standings)}</div><div class="panel"><h2>Finale · manches</h2>${roundsAdmin('final', fin.rounds)}</div>` : ''}
+    <div class="panel"><h2>Phase 1 · classement</h2><p class="note">Les ${S.finalSize} premiers (surlignés) vont en finale.</p>${standingsTable(p1.standings, S.finalSize)}</div>
+    <div class="panel"><h2>Phase 1 · manches</h2>${roundsAdmin('p1', p1.rounds)}</div>`;
+  }
+  function tftAction(t) {
+    const a = t.dataset.tft, path = '/api/admin/tournoi/tft';
+    if (a === 'start') return confirm(`Lancer le tournoi TFT avec ${(D.entrants.tft || []).length} joueurs ?`) && act(path, {action: 'start', ...tftOpt}, true);
+    const box = t.closest('[data-lobby]');
+    if (box) {
+      const base = {phase: box.dataset.phase, round: Number(box.dataset.round), lobby: Number(box.dataset.lobby)};
+      if (a === 'clearLobby') return confirm('Effacer les places de ce lobby ?') && act(path, {action: 'clearLobby', ...base});
+      const places = {};
+      box.querySelectorAll('[data-place]').forEach((s) => (places[s.dataset.place] = s.value === '' ? null : Number(s.value)));
+      return act(path, {action: 'result', ...base, places});
+    }
+    if (a === 'next') return act(path, {action: 'next'});
+    if (a === 'final') return confirm('Lancer la finale avec le top du classement de la phase 1 ?') && act(path, {action: 'final'}, true);
+    if (a === 'reset') return act(path, {action: 'reset'}, true);
+    return act(path, {action: a});
   }
 
   // ---------- Onglet Salles (jeu libre, mini-tournois, parties TFT et Fortnite) ----------
@@ -135,12 +198,13 @@
   function render() {
     document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     if (!D) return;
-    view.innerHTML = tab === 'libres' ? libresView() : compView(tab);
+    view.innerHTML = tab === 'libres' ? libresView() : tab === 'tft' ? tftView() : compView(tab);
   }
 
   // ---------- Actions ----------
   view.addEventListener('change', (e) => {
     const t = e.target, o = opts[tab];
+    if (t.dataset.topt) { tftOpt[t.dataset.topt] = t.dataset.topt === 'mode' ? t.value : Number(t.value); return; }
     if (t.dataset.opt) { o[t.dataset.opt] = t.dataset.opt === 'format' || t.dataset.opt === 'filter' ? t.value : Math.max(1, Number(t.value) || 1); render(); }
     else if (t.dataset.group !== undefined) draftGroups[tab][t.dataset.group] = t.value;
     else if (t.dataset.seed !== undefined) draftSeeds[tab][Number(t.dataset.seed)] = t.value;
@@ -180,6 +244,10 @@
       draftSeeds[c] = out.slice(0, opts[c].nSeeds);
       return render();
     }
+    if (t.id === 'drawSeeds') {
+      draftSeeds[c] = D.entrants[c].map((x) => x.id).sort(() => Math.random() - 0.5).slice(0, opts[c].nSeeds);
+      return render();
+    }
     if (t.id === 'saveBracket') {
       const seeds = draftSeeds[c].filter(Boolean);
       if (!confirm(`Créer la phase finale (${opts[c].format === 'double' ? 'double élimination' : 'élimination directe'}, ${seeds.length} qualifiés) ?`)) return;
@@ -197,6 +265,8 @@
       if (t.dataset.do === 'reset') return confirm('Effacer le score et les déclarations de ce match ?') && act('/api/admin/tournoi/match', {id, action: 'reset'});
       if (t.dataset.do === 'resetVeto') return confirm('Recommencer le ban de maps ?') && act('/api/admin/tournoi/match', {id, action: 'resetVeto'});
     }
+    // TFT
+    if (t.dataset.tft) return tftAction(t);
     // Joueurs libres
     if (t.id === 'createRoom') return act('/api/admin/libres', {action: 'create', name: $('#rName').value, game: $('#rGame').value, capacity: Number($('#rCap').value), info: $('#rInfo').value});
     const rEl = t.closest('[data-room]');
