@@ -16,6 +16,12 @@
   .sc button { width: 46px; height: 46px; font-size: 24px; padding: 0; }
   textarea { width: 100%; min-height: 110px; background: #0a0a0e; border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: 12px; font: inherit; }
   .saved { color: var(--fc); font-weight: 700; }
+  .bgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .bgs button { position: relative; padding: 0; border: 3px solid transparent; background: #000; cursor: pointer; aspect-ratio: 16 / 9; overflow: hidden; }
+  .bgs button img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bgs button.on { border-color: var(--orange); }
+  .bgs button span { position: absolute; left: 0; right: 0; bottom: 0; font-size: 11px; background: rgba(0,0,0,.7); color: #fff; padding: 2px 4px; text-align: left; }
+  .bgs button i { position: absolute; top: 2px; right: 4px; font-style: normal; font-size: 14px; color: #fff; background: rgba(0,0,0,.7); padding: 0 5px; }
 </style>
 </head>
 <body>
@@ -32,7 +38,22 @@
         <button class="btn ghost" data-scene="starting">Début bientôt</button>
         <button class="btn ghost" data-scene="pause">Pause</button>
         <button class="btn ghost" data-scene="end">Fin du live</button>
+        <button class="btn ghost" data-scene="board">Classement / tableau</button>
       </div>
+      <p class="row" style="margin-top:12px"><label>Classement : afficher <select id="boardView"><option value="auto">Automatique (tableau s'il existe, sinon poules)</option><option value="groups">Les poules</option><option value="bracket">Le tableau final</option></select></label>
+        <span class="note" style="margin:0">Le jeu affiché est celui choisi dans « Match ». TFT : classement + lobbies en cours.</span></p>
+    </div>
+
+    <div class="panel"><h2>Photo de fond (Début bientôt, Pause, Fin, Classement)</h2>
+      <p class="note">Clique sur une photo pour l'afficher derrière les écrans plein écran, ou importe la tienne (PNG, JPG ou WebP, format paysage conseillé).</p>
+      <div class="bgs" id="bgs"></div>
+      <p class="row" style="margin-top:12px"><label class="btn small ghost" style="cursor:pointer">Importer une photo<input type="file" id="bgFile" accept="image/png,image/jpeg,image/webp" hidden></label><span class="note" style="margin:0" id="bgInfo"></span></p>
+    </div>
+
+    <div class="panel"><h2>Depuis la gestion des tournois</h2>
+      <p class="note">Choisis un match du tournoi : noms, logos, phase et format sont remplis automatiquement (scores remis à 0).</p>
+      <div class="row"><select id="tMatch" style="flex:1;min-width:320px"></select><button class="btn small" id="loadMatch" type="button">Charger dans l'overlay</button></div>
+      <p class="row" style="margin-top:12px"><button class="btn small ghost" id="autoNext" type="button">Remplir « À suivre » avec les prochains matchs</button><span class="note" style="margin:0" id="tInfo"></span></p>
     </div>
 
     <div class="panel"><h2>Match</h2>
@@ -40,7 +61,7 @@
         <div class="field"><label>Jeu</label><select id="game"><option value="valorant">Valorant</option><option value="rocketleague">Rocket League</option><option value="fc27">FC 27 FUT</option><option value="tft">TFT</option><option value="fortnite">Fortnite</option><option value="libres">Jeu libre</option></select></div>
         <div class="field"><label>Phase</label><input id="phase" list="phases" maxlength="40"></div>
         <div class="field"><label>Position du score</label><select id="bugPos"><option value="top">En haut</option><option value="bottom">En bas</option><option value="hidden">Masqué</option></select></div>
-        <div class="field"><label>Format (BO)</label><select id="bo"><option value="0">—</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option></select></div>
+        <div class="field"><label>Format (BO)</label><select id="bo"><option value="0">—</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option><option value="9">BO9</option><option value="13">BO13</option></select></div>
       </div>
       <datalist id="phases"><option value="Phase de groupes"><option value="Groupe A"><option value="Groupe B"><option value="Winner bracket"><option value="Loser bracket"><option value="Demi-finale"><option value="Finale du winner"><option value="Finale du loser"><option value="Grande finale"></datalist>
       <div class="scorebox" style="margin-top:18px">
@@ -86,7 +107,85 @@
       $('countdown').value = new Date(st.countdown).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit', timeZone: 'Indian/Reunion'});
     }
     document.querySelectorAll('[data-scene]').forEach((b) => b.classList.toggle('ghost', b.dataset.scene !== st.scene));
+    $('boardView').value = st.boardView || 'auto';
+    renderBgs();
   }
+
+  // ---------- Photos de fond ----------
+  const PRESETS = [['../assets/img/hero.jpg', 'Par défaut'], ['../assets/img/hero-wide.jpg', 'Salle (large)'], ['../assets/da/photo-lan.jpg', 'Joueurs en LAN'],
+    ['../assets/img/wide-2.jpg', 'LAN 2'], ['../assets/img/wide-3.jpg', 'LAN 3'], ['../assets/img/wide-4.jpg', 'LAN 4'], ['../assets/img/libres.jpg', 'Jeu libre'],
+    ['../assets/da/bg-valorant.jpg', 'Valorant'], ['../assets/da/bg-rl.jpg', 'Rocket League'], ['../assets/da/bg-fc.jpg', 'FC 27'], ['../assets/da/saint-paul.jpg', 'Saint-Paul']];
+  let bgSig = '';
+  function renderBgs() {
+    const cur = st.bg || '../assets/img/hero.jpg';
+    const list = [...(st.bgList || []).map((u, i) => [u, `Importée ${i + 1}`, true]), ...PRESETS];
+    const sig = JSON.stringify([cur, list]);
+    if (sig === bgSig) return; bgSig = sig;
+    $('bgs').innerHTML = list.map(([u, l, mine]) => `<button type="button" data-bg="${u}" class="${u === cur ? 'on' : ''}"><img src="${u.startsWith('..') ? u : u}" alt="" loading="lazy"><span>${l}</span>${mine ? `<i data-hide="${u}" title="Retirer de la liste">×</i>` : ''}</button>`).join('');
+  }
+  $('bgs').addEventListener('click', async (e) => {
+    const h = e.target.closest('[data-hide]');
+    if (h) { e.stopPropagation(); if (!confirm('Retirer cette photo de la liste ?')) return; return bgPost({action: 'hide', url: h.dataset.hide}); }
+    const b = e.target.closest('[data-bg]');
+    if (b) send({bg: b.dataset.bg});
+  });
+  async function bgPost(body) {
+    const res = await fetch('/api/admin/stream/bg', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-admin-password': pwd}, body: JSON.stringify(body)});
+    const d = await res.json();
+    if (!res.ok) { $('bgInfo').textContent = d.error || 'Erreur'; return; }
+    st = d; fill(); $('bgInfo').textContent = body.image ? '✔ Photo importée et affichée' : '';
+  }
+  // Réduit la photo à 1920 px de large côté navigateur avant l'envoi
+  $('bgFile').addEventListener('change', (e) => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(f.type)) { $('bgInfo').textContent = 'Format non accepté : PNG, JPG ou WebP.'; return; }
+    $('bgInfo').textContent = 'Import en cours…';
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1920 / img.width, 1080 / img.height * 1.5);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      bgPost({image: c.toDataURL('image/jpeg', 0.86)});
+    };
+    img.onerror = () => { $('bgInfo').textContent = 'Impossible de lire cette image.'; };
+    img.src = URL.createObjectURL(f);
+  });
+
+  // ---------- Matchs de la gestion des tournois ----------
+  let TD = null;
+  const GN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', fortnite: 'Fortnite'};
+  const ORDER = {ready: 0, reported: 0, disputed: 0, waiting: 1, done: 2};
+  async function loadT() {
+    try { TD = await (await fetch('/api/tournoi', {cache: 'no-store'})).json(); } catch { return; }
+    const sel = $('tMatch'), keep = sel.value;
+    const list = [];
+    for (const [c, C] of Object.entries(TD.comps)) for (const m of C.matches) if (m.a && m.b && !m.bye && !m.a.bye && !m.b.bye) list.push({c, m});
+    list.sort((x, y) => (ORDER[x.m.status] - ORDER[y.m.status]) || x.c.localeCompare(y.c) || String(x.m.roundName).localeCompare(String(y.m.roundName)));
+    const lab = {ready: 'À jouer', reported: 'En cours', disputed: 'Litige', waiting: 'En attente', done: 'Terminé'};
+    sel.innerHTML = list.length ? list.map(({c, m}) => `<option value="${m.id}">[${lab[m.status]}] ${GN[c]} · ${m.roundName} · ${m.a.name} vs ${m.b.name}${m.status === 'done' ? ` (${m.scoreA}-${m.scoreB})` : ''}</option>`).join('')
+      : '<option value="">Aucun match créé pour le moment</option>';
+    if (keep && list.some((x) => x.m.id === keep)) sel.value = keep;
+    else if (st.matchId && list.some((x) => x.m.id === st.matchId)) sel.value = st.matchId;
+  }
+  function findMatch(id) { for (const [c, C] of Object.entries(TD?.comps || {})) { const m = C.matches.find((x) => x.id === id); if (m) return {c, m}; } return null; }
+  $('loadMatch').addEventListener('click', () => {
+    const f = findMatch($('tMatch').value);
+    if (!f) return;
+    const {c, m} = f;
+    send({game: c, teamA: m.a.name.slice(0, 30), teamB: m.b.name.slice(0, 30), phase: String(m.roundName || '').slice(0, 40), bo: m.bo, scoreA: 0, scoreB: 0, matchId: m.id});
+  });
+  $('autoNext').addEventListener('click', () => {
+    if (!TD) return;
+    const rows = [];
+    for (const [c, C] of Object.entries(TD.comps)) for (const m of C.matches) if (m.status !== 'done' && m.a && m.b && !m.bye && m.id !== st.matchId) rows.push({c, m});
+    rows.sort((x, y) => (ORDER[x.m.status] - ORDER[y.m.status]));
+    $('next').value = rows.slice(0, 5).map(({c, m}) => `${GN[c]} · ${m.roundName} · ${m.a.name} vs ${m.b.name}`).join('\n');
+    $('tInfo').textContent = rows.length ? 'Liste remplie : clique « Mettre à jour l\'overlay » pour l\'envoyer.' : 'Aucun match à venir.';
+  });
+  $('boardView').addEventListener('change', () => send({boardView: $('boardView').value}));
 
   function countdownIso() {
     const v = $('countdown').value;
@@ -124,6 +223,7 @@
     const ok = await fetch('/api/admin/inscriptions', {headers: {'x-admin-password': pwd}});
     if (!ok.ok) return showLogin(pwd ? 'Mot de passe incorrect.' : '');
     $('login').classList.add('hide'); $('app').classList.remove('hide'); fill();
+    loadT(); setInterval(loadT, 15000);
   }
   start();
 </script>

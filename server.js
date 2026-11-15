@@ -49,17 +49,19 @@ const DB_FILE = path.join(DATA_DIR, 'inscriptions.json');
 const STREAM_FILE = path.join(DATA_DIR, 'stream.json');
 const SPLIT_HOURS = 48; // paiement « chacun sa part » : délai laissé à l'équipe pour que tout le monde paie
 const LOGO_DIR = path.join(DATA_DIR, 'logos');
+const STREAM_BG_DIR = path.join(DATA_DIR, 'stream-bg'); // photos de fond importées pour les écrans Pause / Début / Fin
+const BG_RE = /^(\.\.\/assets\/(img|da)\/[a-z0-9-]+\.jpg|\/api\/stream\/bg\/[0-9a-f]{12}\.(jpg|png|webp))$/;
 
 // ---------- Logos d'équipe (Valorant, Rocket League) ----------
 const LOGO_MAX = 2 * 1024 * 1024;
 const LOGO_TYPES = {png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp'};
 // Décode une image envoyée en data URL et vérifie qu'il s'agit vraiment d'un PNG, JPEG ou WebP
-function parseLogo(v) {
+function parseLogo(v, max = LOGO_MAX) {
   if (typeof v !== 'string') return null;
   const m = v.match(/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/);
   if (!m) return null;
   const buf = Buffer.from(m[2], 'base64');
-  if (!buf.length || buf.length > LOGO_MAX) return null;
+  if (!buf.length || buf.length > max) return null;
   const ext = buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? 'png'
     : buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff ? 'jpg'
       : buf.slice(0, 4).toString('latin1') === 'RIFF' && buf.slice(8, 12).toString('latin1') === 'WEBP' ? 'webp' : null;
@@ -97,13 +99,16 @@ function cleanStream(b) {
   const txt = (v, n) => (typeof v === 'string' ? v.slice(0, n) : undefined);
   const num = (v, max) => (Number.isInteger(v) && v >= 0 && v <= max ? v : undefined);
   const upd = {
-    scene: ['match', 'starting', 'pause', 'end'].includes(b.scene) ? b.scene : undefined,
+    scene: ['match', 'starting', 'pause', 'end', 'board'].includes(b.scene) ? b.scene : undefined,
+    boardView: ['auto', 'groups', 'bracket'].includes(b.boardView) ? b.boardView : undefined,
+    matchId: typeof b.matchId === 'string' ? b.matchId.slice(0, 20) : undefined,
     game: ['valorant', 'rocketleague', 'fc27', 'tft', 'fortnite', 'libres'].includes(b.game) ? b.game : undefined,
     bugPos: ['top', 'bottom', 'hidden'].includes(b.bugPos) ? b.bugPos : undefined,
-    phase: txt(b.phase, 40), bo: num(b.bo, 9), teamA: txt(b.teamA, 30), teamB: txt(b.teamB, 30),
+    phase: txt(b.phase, 40), bo: num(b.bo, 17), teamA: txt(b.teamA, 30), teamB: txt(b.teamB, 30),
     scoreA: num(b.scoreA, 9), scoreB: num(b.scoreB, 9), message: txt(b.message, 140),
     countdown: typeof b.countdown === 'string' && (b.countdown === '' || !isNaN(Date.parse(b.countdown))) ? b.countdown : undefined,
     next: Array.isArray(b.next) ? b.next.slice(0, 5).map((x) => String(x).slice(0, 80)) : undefined,
+    bg: typeof b.bg === 'string' && (b.bg === '' || BG_RE.test(b.bg)) ? b.bg : undefined,
   };
   for (const [k, v] of Object.entries(upd)) if (v !== undefined) st[k] = v;
   return st;
@@ -558,6 +563,14 @@ async function api(req, res, url) {
     return send(res, 200, {...st, logoA: teamLogoUrl(st.game, st.teamA), logoB: teamLogoUrl(st.game, st.teamB)}, {'Cache-Control': 'no-store'});
   }
 
+  const bgm = url.pathname.match(/^\/api\/stream\/bg\/([0-9a-f]{12})\.(jpg|png|webp)$/);
+  if (req.method === 'GET' && bgm) {
+    const file = path.join(STREAM_BG_DIR, `${bgm[1]}.${bgm[2]}`);
+    if (!fs.existsSync(file)) return send(res, 404, {error: 'Image introuvable.'});
+    res.writeHead(200, {'Content-Type': LOGO_TYPES[bgm[2]], 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=86400'});
+    return fs.createReadStream(file).pipe(res);
+  }
+
   const lm = url.pathname.match(/^\/api\/logo\/([0-9a-f-]{36})$/);
   if (req.method === 'GET' && lm) {
     const r = loadDb().find((x) => x.id === lm[1]);
@@ -648,6 +661,23 @@ async function api(req, res, url) {
     if (req.method === 'POST' && url.pathname === '/api/admin/stream') {
       let b; try { b = JSON.parse(await readBody(req)); } catch { return send(res, 400, {error: 'Requête invalide.'}); }
       const st = cleanStream(b); saveStream(st);
+      return send(res, 200, st);
+    }
+    // Photo de fond importée pour les écrans plein écran du stream (ajoutée à la liste, jamais supprimée du disque)
+    if (req.method === 'POST' && url.pathname === '/api/admin/stream/bg') {
+      let b; try { b = JSON.parse(await readBody(req, 8 * 1024 * 1024)); } catch { return send(res, 400, {error: 'Image trop lourde (5 Mo maximum).'}); }
+      const st = loadStream();
+      st.bgList = Array.isArray(st.bgList) ? st.bgList : [];
+      if (b.action === 'hide') { st.bgList = st.bgList.filter((x) => x !== b.url); saveStream(st); return send(res, 200, st); }
+      const img = parseLogo(b.image, 5 * 1024 * 1024);
+      if (!img) return send(res, 400, {error: 'Image invalide : PNG, JPG ou WebP, 5 Mo maximum.'});
+      fs.mkdirSync(STREAM_BG_DIR, {recursive: true});
+      const name = `${crypto.randomBytes(6).toString('hex')}.${img.ext}`;
+      fs.writeFileSync(path.join(STREAM_BG_DIR, name), img.buf);
+      const u = `/api/stream/bg/${name}`;
+      st.bgList = [u, ...st.bgList].slice(0, 30);
+      st.bg = u;
+      saveStream(st);
       return send(res, 200, st);
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/logo') {

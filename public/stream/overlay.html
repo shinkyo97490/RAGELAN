@@ -59,6 +59,45 @@
   #full .foot { position: absolute; bottom: 36px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 30px; }
   #full .foot img { height: 70px; }
   #full .foot .h { font-size: 28px; color: #c9a8ff; }
+
+  /* ---------- Scène CLASSEMENT / TABLEAU ---------- */
+  #board { position: absolute; inset: 0; background: #000 url('../assets/img/hero.jpg') center/cover; }
+  #board::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.82), rgba(0,0,0,.94)); }
+  #board .bhead { position: absolute; top: 34px; left: 60px; right: 60px; display: flex; align-items: center; gap: 28px; border-bottom: 3px solid var(--c); padding-bottom: 18px; }
+  #board .bhead img.g { height: 70px; max-width: 300px; object-fit: contain; }
+  #board .bhead .t { font-size: 66px; line-height: 1; }
+  #board .bhead .s { font-size: 26px; color: var(--c); letter-spacing: .14em; margin-left: auto; }
+  #board .bhead img.rl { height: 74px; }
+  #bArea { position: absolute; top: 170px; left: 60px; width: 1800px; height: 790px; }
+  #bInner { transform-origin: top left; display: inline-block; }
+  #board .bfoot { position: absolute; bottom: 30px; left: 60px; right: 60px; display: flex; align-items: center; gap: 26px; }
+  #board .bfoot img { height: 54px; }
+  #board .bfoot span { margin-left: auto; font-size: 24px; color: #c9a8ff; }
+  .grp { display: grid; grid-template-columns: repeat(var(--n, 2), 600px); gap: 28px; }
+  .card { background: rgba(10,10,14,.92); border-top: 6px solid var(--c); padding: 18px 22px; }
+  .card h3 { margin: 0 0 10px; font-size: 34px; }
+  .tb { width: 100%; border-collapse: collapse; font-size: 26px; }
+  .tb th { font-size: 16px; color: var(--c); letter-spacing: .14em; text-align: right; padding: 4px 8px; font-weight: 700; }
+  .tb th:nth-child(2) { text-align: left; }
+  .tb td { padding: 8px; border-top: 1px solid rgba(255,255,255,.1); text-align: right; font-weight: 700; }
+  .tb td.n { text-align: left; }
+  .tb td.p { color: var(--c); font-size: 30px; }
+  .tb tr.q td { background: rgba(255,255,255,.06); }
+  .tm { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+  .tm img { width: 40px; height: 40px; object-fit: contain; flex: none; }
+  .brk { display: flex; gap: 26px; align-items: flex-start; }
+  .brk .col { display: flex; flex-direction: column; justify-content: space-around; gap: 14px; min-width: 330px; align-self: stretch; }
+  .brk h4 { margin: 0 0 4px; font-size: 18px; color: var(--c); letter-spacing: .12em; font-family: 'Inter'; font-weight: 700; text-transform: uppercase; }
+  .bm2 { background: rgba(10,10,14,.92); border-left: 5px solid #333; }
+  .bm2.live { border-left-color: var(--c); }
+  .bm2 .r { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; font-size: 22px; font-weight: 700; gap: 12px; }
+  .bm2 .r + .r { border-top: 1px solid rgba(255,255,255,.08); }
+  .bm2 .r.w { color: #ffd23f; }
+  .bm2 .r.x { color: #777; }
+  .bm2 .r b { font-family: 'Anton'; font-size: 26px; font-weight: 400; }
+  .bsec { font-size: 28px; margin: 8px 0 12px; }
+  .two { display: grid; grid-template-columns: 900px 860px; gap: 40px; }
+  .lob { display: grid; gap: 18px; }
 </style>
 </head>
 <body>
@@ -97,6 +136,12 @@
   </div>
 </div>
 
+<div id="board" class="hide">
+  <div class="bhead"><img class="g" id="bGame" alt=""><div class="t anton" id="bTitle">Classement</div><div class="s anton" id="bSub"></div><img class="rl" src="../assets/logos/ragelan.png" alt=""></div>
+  <div id="bArea"><div id="bInner"></div></div>
+  <div class="bfoot"><img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""><img src="../assets/logos/mils.png" alt=""><span>Résultats en direct : ragelan.rushxp.re/tournoi.html</span></div>
+</div>
+
 <script>
   const GAMES = {
     valorant: {logo: '../assets/logos/valorant.png', color: '#FF4655'},
@@ -120,7 +165,8 @@
     if (!st) return;
     const scene = forced || st.scene;
     $('match').classList.toggle('hide', scene !== 'match');
-    $('full').classList.toggle('hide', scene === 'match');
+    $('full').classList.toggle('hide', scene === 'match' || scene === 'board');
+    $('board').classList.toggle('hide', scene !== 'board');
     const g = GAMES[st.game] || GAMES.valorant;
     document.documentElement.style.setProperty('--c', g.color);
     $('teamA').textContent = st.teamA; $('teamB').textContent = st.teamB;
@@ -137,7 +183,10 @@
     $('bugwrap').classList.toggle('hide', st.bugPos === 'hidden');
     if ($('msg').textContent !== st.message) $('msg').textContent = st.message;
     $('ticker').classList.toggle('static', st.message.length < 60);
-    if (scene !== 'match') {
+    const bgUrl = st.bg || '../assets/img/hero.jpg';
+    for (const id of ['full', 'board']) { const v = `url('${bgUrl}')`; if ($(id).dataset.bg !== bgUrl) { $(id).style.backgroundImage = v; $(id).dataset.bg = bgUrl; } }
+    if (scene === 'board') renderBoard(g);
+    if (scene !== 'match' && scene !== 'board') {
       const s = SCENES[scene] || SCENES.starting;
       $('fTitle').textContent = s.title;
       $('fSub').textContent = st.message || s.sub;
@@ -145,6 +194,85 @@
       $('fNextList').replaceChildren(...st.next.map((t) => Object.assign(document.createElement('div'), {textContent: t})));
     }
   }
+
+  // ---------- Classement / tableau, alimenté par la gestion des tournois ----------
+  let T = null, lastBoard = '';
+  const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+  const NAMES = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'EA Sports FC 27', tft: 'TFT', fortnite: 'Fortnite', libres: 'Mini-tournois'};
+  const tm = (t) => t ? `<span class="tm">${t.logo ? `<img src="${esc(t.logo)}" alt="">` : ''}<span>${esc(t.name)}</span></span>` : '<span class="tm" style="color:#777">À déterminer</span>';
+  function groupsHtml(groups) {
+    return `<div class="grp" style="--n:${Math.min(3, groups.length)}">${groups.map((gr) => `<div class="card"><h3 class="anton">Poule ${esc(gr.name)}</h3>
+      <table class="tb"><tr><th>#</th><th>Équipe</th><th>V</th><th>D</th><th>Diff</th><th>Pts</th></tr>${gr.standings.map((r, i) => `<tr><td>${i + 1}</td><td class="n">${tm(r)}</td><td>${r.w}</td><td>${r.l}</td><td>${r.for - r.against > 0 ? '+' : ''}${r.for - r.against}</td><td class="p">${r.pts}</td></tr>`).join('')}</table></div>`).join('')}</div>`;
+  }
+  function bracketHtml(matches) {
+    const bm = matches.filter((m) => m.stage === 'bracket');
+    const sec = (key, title) => {
+      const ms = bm.filter((m) => m.bracket === key && !(m.bye && m.round === 1 && (m.a?.bye || m.b?.bye || !m.a || !m.b)));
+      if (!ms.length) return '';
+      const rounds = [...new Set(ms.map((m) => m.round))].sort((a, b) => a - b);
+      return `${title ? `<div class="bsec anton">${title}</div>` : ''}<div class="brk">${rounds.map((r) => {
+        const col = ms.filter((m) => m.round === r).sort((a, b) => a.order - b.order);
+        return `<div class="col"><h4>${esc(col[0].roundName)} · BO${col[0].bo}</h4>${col.map((m) => {
+          const done = m.status === 'done', w = done ? (m.scoreA > m.scoreB ? 'a' : 'b') : '';
+          const row = (s) => `<div class="r ${w === s ? 'w' : w ? 'x' : ''}">${tm(m[s])}<b>${done && !m.bye ? m['score' + s.toUpperCase()] : ''}</b></div>`;
+          return `<div class="bm2 ${!done && m.a && m.b ? 'live' : ''}">${row('a')}${row('b')}</div>`;
+        }).join('')}</div>`;
+      }).join('')}</div>`;
+    };
+    return sec('main', '') + sec('upper', 'Winner bracket') + sec('lower', 'Loser bracket') + sec('final', '');
+  }
+  function tftHtml(X) {
+    if (!X) return '<div class="card"><h3 class="anton">Les lobbies TFT seront publiés au début du tournoi</h3></div>';
+    const fin = X.final, S = X.settings;
+    const rows = (fin || X.p1).standings;
+    const cur = fin ? fin.rounds[fin.rounds.length - 1] : X.p1.rounds[X.p1.rounds.length - 1];
+    const table = `<div class="card"><h3 class="anton">${fin ? 'Classement de la finale' : 'Classement phase 1'}</h3><table class="tb"><tr><th>#</th><th>Joueur</th><th>Top 1</th><th>Top 4</th><th>Pts</th></tr>
+      ${rows.slice(0, 16).map((r, i) => `<tr class="${!fin && i < S.finalSize ? 'q' : ''}"><td>${i + 1}</td><td class="n">${esc(r.name)}</td><td>${r.firsts}</td><td>${r.top4}</td><td class="p">${r.points}</td></tr>`).join('')}</table></div>`;
+    const lob = X.phase === 'done' ? '' : `<div class="lob">${cur.lobbies.map((l, i) => `<div class="card"><h3 class="anton">${fin ? 'Lobby finale' : 'Lobby ' + String.fromCharCode(65 + i)} · manche ${fin ? fin.rounds.length : X.p1.rounds.length}</h3>
+      <table class="tb"><tr><th>Place</th><th>Joueur</th><th></th><th></th><th>Pts</th></tr>${l.slice().sort((a, b) => (a.place || 99) - (b.place || 99)).map((p) => `<tr><td>${p.place || '—'}</td><td class="n">${esc(p.name)}</td><td></td><td></td><td class="p">${p.place ? 9 - p.place : ''}</td></tr>`).join('')}</table></div>`).join('')}</div>`;
+    return `<div class="two">${table}${lob}</div>`;
+  }
+  function renderBoard(g) {
+    if (!T) return;
+    const game = st.game;
+    let html, sub;
+    if (game === 'tft') { html = tftHtml(T.tft); sub = T.tft ? (T.tft.phase === 'done' ? 'Résultats finaux' : T.tft.final ? 'Finale' : 'Phase 1') : ''; }
+    else if (game === 'libres') {
+      html = `<div class="card" style="width:1000px"><h3 class="anton">Classement des mini-tournois</h3><table class="tb"><tr><th>#</th><th>Joueur</th><th></th><th>Salles</th><th>Pts</th></tr>${(T.classement || []).slice(0, 14).map((p, i) => `<tr><td>${i + 1}</td><td class="n">${esc(p.pseudo)}</td><td></td><td>${p.rooms}</td><td class="p">${p.points}</td></tr>`).join('') || '<tr><td></td><td class="n">Pas encore de points</td></tr>'}</table></div>`;
+      sub = '';
+    } else {
+      const C = T.comps[game];
+      if (!C) return;
+      const hasBracket = C.matches.some((m) => m.stage === 'bracket');
+      const view = st.boardView === 'groups' ? 'groups' : st.boardView === 'bracket' ? 'bracket' : (hasBracket ? 'bracket' : 'groups');
+      if (view === 'groups' && C.groups.length) { html = groupsHtml(C.groups); sub = 'Phase de groupes'; }
+      else if (hasBracket) { html = bracketHtml(C.matches); sub = game === 'fortnite' ? 'Double élimination' : 'Phase finale'; }
+      else { html = '<div class="card"><h3 class="anton">Le tableau sera publié au début de la compétition</h3></div>'; sub = ''; }
+    }
+    $('bGame').src = g.logo; $('bTitle').textContent = NAMES[game] || 'Classement'; $('bSub').textContent = sub;
+    if (html !== lastBoard) {
+      lastBoard = html;
+      $('bInner').innerHTML = html;
+      $('bInner').querySelectorAll('img').forEach((im) => im.addEventListener('load', fitBoard, {once: true}));
+    }
+    fitBoard();
+  }
+  // Ajuste la taille pour que tout tienne dans la zone (1800 × 790), en recalculant après le chargement des polices et des logos
+  function fitBoard() {
+    const inner = $('bInner');
+    const prev = inner.style.transform;
+    inner.style.transform = 'none';
+    const k = Math.min(1, 1800 / Math.max(1, inner.scrollWidth), 790 / Math.max(1, inner.scrollHeight));
+    const next = `scale(${k.toFixed(4)})`;
+    inner.style.transform = next === prev ? prev : next;
+  }
+  if (document.fonts) document.fonts.ready.then(fitBoard);
+  async function pollT() {
+    const scene = forced || st?.scene;
+    if (scene !== 'board') return;
+    try { T = await (await fetch('/api/tournoi', {cache: 'no-store'})).json(); apply(); } catch (e) {}
+  }
+  setInterval(pollT, 5000);
 
   function tick() {
     const el = $('fCount');
@@ -157,7 +285,7 @@
   }
 
   async function poll() {
-    try { st = await (await fetch('/api/stream', {cache: 'no-store'})).json(); apply(); } catch (e) {}
+    try { const first = !st; st = await (await fetch('/api/stream', {cache: 'no-store'})).json(); if ((forced || st.scene) === 'board' && (first || !T)) await pollT(); apply(); } catch (e) {}
   }
   poll(); setInterval(poll, 1500); setInterval(tick, 250);
 </script>
