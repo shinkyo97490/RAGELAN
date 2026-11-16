@@ -30,8 +30,10 @@ const COMPETITIONS = {
   valorant: {name: 'Valorant', team: true, size: 5, capacity: 8, unit: 'équipes', price: 25, logo: true},
   rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 8, unit: 'équipes', price: 20, logo: true},
   fc27: {name: 'EA Sports FC 27 FUT', team: false, size: 1, capacity: 24, unit: 'joueurs', price: 20},
-  tft: {name: 'TFT', team: false, size: 1, capacity: 16, unit: 'joueurs', price: 20},
-  fortnite: {name: 'Fortnite', team: true, size: 2, capacity: 12, unit: 'duos', price: 20},
+  // TFT et Fortnite retirés de l'événement (masqués, gardés pour l'historique)
+  tft: {name: 'TFT', team: false, size: 1, capacity: 16, unit: 'joueurs', price: 20, hidden: true},
+  fortnite: {name: 'Fortnite', team: true, size: 2, capacity: 12, unit: 'duos', price: 20, hidden: true},
+  brawlstars: {name: 'Brawl Stars', team: true, size: 3, capacity: 8, unit: 'équipes', price: 10},
   // Ancienne formule payante, remplacée par TFT et Fortnite : le jeu libre est inclus pour tous les inscrits.
   // Gardée (masquée, fermée) pour les anciennes inscriptions éventuelles.
   libres: {name: 'Joueurs libres', team: false, size: 1, capacity: 0, unit: 'places', price: 20, hidden: true},
@@ -102,7 +104,7 @@ function cleanStream(b) {
     scene: ['match', 'starting', 'pause', 'end', 'board'].includes(b.scene) ? b.scene : undefined,
     boardView: ['auto', 'groups', 'bracket'].includes(b.boardView) ? b.boardView : undefined,
     matchId: typeof b.matchId === 'string' ? b.matchId.slice(0, 20) : undefined,
-    game: ['valorant', 'rocketleague', 'fc27', 'tft', 'fortnite', 'libres'].includes(b.game) ? b.game : undefined,
+    game: ['valorant', 'rocketleague', 'fc27', 'tft', 'fortnite', 'brawlstars', 'libres'].includes(b.game) ? b.game : undefined,
     bugPos: ['top', 'bottom', 'hidden'].includes(b.bugPos) ? b.bugPos : undefined,
     phase: txt(b.phase, 40), bo: num(b.bo, 17), teamA: txt(b.teamA, 30), teamB: txt(b.teamB, 30),
     scoreA: num(b.scoreA, 9), scoreB: num(b.scoreB, 9), message: txt(b.message, 140),

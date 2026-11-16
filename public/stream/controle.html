@@ -6,7 +6,7 @@
 <title>Contrôle stream — RAGE LAN 2026</title>
 <meta name="robots" content="noindex, nofollow">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/style.css?v=20261115b">
+<link rel="stylesheet" href="../css/style.css?v=20261116b">
 <style>
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .scenes button.active { outline: 3px solid #fff; }
@@ -59,7 +59,7 @@
 
     <div class="panel"><h2>Match</h2>
       <div class="fields">
-        <div class="field"><label>Jeu</label><select id="game"><option value="valorant">Valorant</option><option value="rocketleague">Rocket League</option><option value="fc27">FC 27 FUT</option><option value="tft">TFT</option><option value="fortnite">Fortnite</option><option value="libres">Jeu libre</option></select></div>
+        <div class="field"><label>Jeu</label><select id="game"><option value="valorant">Valorant</option><option value="rocketleague">Rocket League</option><option value="fc27">FC 27 FUT</option><option value="brawlstars">Brawl Stars</option><option value="libres">Jeu libre</option></select></div>
         <div class="field"><label>Phase</label><input id="phase" list="phases" maxlength="40"></div>
         <div class="field"><label>Position du score</label><select id="bugPos"><option value="top">En haut</option><option value="bottom">En bas</option><option value="hidden">Masqué</option></select></div>
         <div class="field"><label>Format (BO)</label><select id="bo"><option value="0">—</option><option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option><option value="7">BO7</option><option value="9">BO9</option><option value="13">BO13</option></select></div>
@@ -159,7 +159,7 @@
 
   // ---------- Matchs de la gestion des tournois ----------
   let TD = null, lastAuto = '';
-  const GN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', fortnite: 'Fortnite'};
+  const GN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', fortnite: 'Fortnite', brawlstars: 'Brawl Stars'};
   const ORDER = {ready: 0, reported: 0, disputed: 0, waiting: 1, done: 2};
   async function loadT() {
     try { TD = await (await fetch('/api/tournoi', {cache: 'no-store'})).json(); } catch { return; }
