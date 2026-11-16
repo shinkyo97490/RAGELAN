@@ -43,6 +43,7 @@
     }
     const letters = Array.from({length: o.nGroups}, (_, i) => String.fromCharCode(65 + i));
     const unit = c === 'fc27' ? 'joueurs' : FN ? 'duos' : 'équipes';
+    if (c === 'brawlstars' && !opts.__bs) { opts.__bs = 1; o.bboBo = 3; o.boFinal = 3; o.nSeeds = Math.max(2, Math.min(8, ent.length || 8)); }
     const bracketMatches = C.matches.filter((m) => m.stage === 'bracket');
     const seeds = draftSeeds[c] = draftSeeds[c] || [];
     while (seeds.length < o.nSeeds) seeds.push('');
@@ -172,7 +173,7 @@
   }
 
   // ---------- Onglet Salles (jeu libre, mini-tournois, parties TFT et Fortnite) ----------
-  const COMPN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', tft: 'TFT', fortnite: 'Fortnite', libres: 'Joueur libre'};
+  const COMPN = {valorant: 'Valorant', rocketleague: 'Rocket League', fc27: 'FC 27', tft: 'TFT', fortnite: 'Fortnite', brawlstars: 'Brawl Stars', libres: 'Joueur libre'};
   const kind = (p) => COMPN[p.comp] || (p.libre ? 'Joueur libre' : 'Compétiteur');
   function libresView() {
     return `<div class="panel"><h2>Créer une salle</h2>
