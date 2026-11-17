@@ -28,7 +28,7 @@ const SMTP = {host: process.env.SMTP_HOST || '', port: Number(process.env.SMTP_P
 
 const COMPETITIONS = {
   valorant: {name: 'Valorant', team: true, size: 5, capacity: 8, unit: 'équipes', price: 25, logo: true},
-  rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 10, unit: 'équipes', price: 20, logo: true},
+  rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 8, unit: 'équipes', price: 20, logo: true},
   fc27: {name: 'EA Sports FC 27 FUT', team: false, size: 1, capacity: 24, unit: 'joueurs', price: 20},
   // TFT et Fortnite retirés de l'événement (masqués, gardés pour l'historique)
   tft: {name: 'TFT', team: false, size: 1, capacity: 16, unit: 'joueurs', price: 20, hidden: true},
