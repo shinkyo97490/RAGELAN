@@ -40,3 +40,16 @@
 - **Messages rapides** : un clic pour afficher un message prêt (pause repas, Discord, partenaires…).
 - **Raccourcis clavier** (hors des champs de saisie) : 1 à 5 pour les scènes, A/Q pour le score A, P/M pour le score B.
 - Changement de scène en fondu ; score jusqu'à 20 (BO longs).
+
+## Séries BO3 / BO5 (maps ou parties)
+
+Dès que le format est BO3 ou plus, l'overlay affiche sous le score :
+- des barres par équipe (maps / parties gagnées sur le nombre nécessaire) et « BO5 · premier à 3 » ;
+- une case par map (Valorant) ou partie (autres jeux) : logo du gagnant et score, la map en cours en rouge « live », les suivantes grisées (« si besoin »).
+
+Dans **Contrôle → Série BO3 / BO5** :
+- saisir le nom de la map (Valorant ; rempli tout seul avec le ban de maps si le match vient de la gestion des tournois) puis Entrée ;
+- suivre le score de la map en cours avec les boutons +/− ou les touches A/Q (équipe A) et P/M (équipe B) ;
+- cliquer « Map gagnée par … » : le score de la série, les barres et les cases se mettent à jour ;
+- « Annuler la dernière » en cas d'erreur, « Recommencer la série » pour repartir de zéro.
+Charger un match depuis la gestion des tournois remet la série à zéro. En BO1, l'affichage ne change pas.

@@ -29,6 +29,31 @@
   .mid .bo { font-size: 18px; color: #ffb24d; letter-spacing: .12em; }
   .bugwrap.bottom .bug { top: auto; bottom: 112px; }
   .bugwrap.bottom .phase { top: auto; bottom: 80px; }
+  /* Série BO3 / BO5 : barres des maps gagnées + détail map par map */
+  .sbar { position: absolute; top: 106px; left: 50%; transform: translateX(-50%); width: 1334px; height: 36px; display: flex; align-items: stretch; filter: drop-shadow(0 6px 16px rgba(0,0,0,.6)); }
+  .sbar .pp { flex: 1; background: rgba(8,8,12,.92); display: flex; align-items: center; gap: 8px; padding: 0 30px; }
+  .sbar .pp.a { justify-content: flex-end; }
+  .sbar .pp i { width: 46px; height: 10px; background: #3a3a44; transform: skewX(-20deg); transition: background .3s, box-shadow .3s; }
+  .sbar .pp i.on { background: var(--c); box-shadow: 0 0 12px var(--c); }
+  .sbar .ct { width: 394px; background: #000; color: #ffb24d; font-size: 20px; letter-spacing: .16em; display: flex; align-items: center; justify-content: center; }
+  .hist { position: absolute; top: 150px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; filter: drop-shadow(0 6px 16px rgba(0,0,0,.6)); }
+  .hist .g { width: 190px; background: rgba(8,8,12,.9); border-top: 4px solid #444; padding: 6px 10px; }
+  .hist .g .n { font-size: 13px; letter-spacing: .14em; color: #aaa; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist .g .r { display: flex; align-items: center; gap: 8px; font-family: 'Anton', Impact, sans-serif; font-size: 24px; margin-top: 2px; white-space: nowrap; }
+  .hist .g .r img { height: 26px; width: 26px; object-fit: contain; }
+  .hist .g .r .chip { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--c); color: #000; font-size: 16px; }
+  .hist .g.done { border-top-color: var(--c); }
+  .hist .g.live { border-top-color: #ff4655; background: rgba(40,8,12,.92); }
+  .hist .g.live .n { color: #ff4655; }
+  .hist .g.next { opacity: .45; }
+  .hist .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ff4655; margin-right: 6px; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .bugwrap.series .phase { top: 232px; }
+  .bugwrap.series.nohist .phase { top: 148px; }
+  .bugwrap.bottom .sbar { top: auto; bottom: 76px; }
+  .bugwrap.bottom .hist { top: auto; bottom: 202px; }
+  .bugwrap.bottom.series .phase { top: auto; bottom: 280px; }
+  .bugwrap.bottom.series.nohist .phase { bottom: 202px; }
   .phase { position: absolute; top: 106px; left: 50%; transform: translateX(-50%); background: var(--c); color: #000; font-size: 22px; padding: 3px 18px; letter-spacing: .12em; white-space: nowrap; }
 
   .lower { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; background: rgba(8,8,12,.92); border-top: 4px solid; border-image: var(--fire-h) 1; }
@@ -131,6 +156,8 @@
     <div class="team b anton"><img id="logoB" class="hide" alt=""><span id="teamB">Équipe B</span></div>
   </div>
   <div class="phase anton" id="phase">Phase de groupes</div>
+  <div class="sbar hide" id="sbar"><div class="pp a" id="ppA"></div><div class="ct anton" id="sbarT"></div><div class="pp b" id="ppB"></div></div>
+  <div class="hist hide" id="hist"></div>
   </div>
   <div class="lower">
     <div class="logo"><img src="../assets/logos/ragelan.png" alt=""></div>
@@ -204,6 +231,7 @@
     $('phase').textContent = st.phase; $('phase').classList.toggle('hide', !st.phase);
     $('bugwrap').className = `bugwrap ${st.bugPos || 'top'}`;
     $('bugwrap').classList.toggle('hide', st.bugPos === 'hidden');
+    renderSeries();
     if ($('msg').textContent !== st.message) $('msg').textContent = st.message;
     $('ticker').classList.toggle('static', st.message.length < 60);
     const bgUrl = st.bg || '../assets/img/hero.jpg';
@@ -215,6 +243,42 @@
       $('fSub').textContent = st.message || s.sub;
       renderLists();
     }
+  }
+
+  // ---------- Série BO3 / BO5 : barres des maps gagnées et détail map par map ----------
+  let lastSeries = '';
+  function renderSeries() {
+    const bo = Number(st.bo) || 0, series = bo > 1, need = Math.ceil(bo / 2);
+    $('bugwrap').classList.toggle('series', series);
+    $('sbar').classList.toggle('hide', !series);
+    const showHist = series && bo <= 9;
+    $('hist').classList.toggle('hide', !showHist);
+    $('bugwrap').classList.toggle('nohist', series && !showHist);
+    if (!series) return;
+    const sa = Math.min(need, st.scoreA || 0), sb = Math.min(need, st.scoreB || 0);
+    const games = Array.isArray(st.games) ? st.games : [];
+    const sig = JSON.stringify([bo, sa, sb, games, st.liveA, st.liveB, st.liveMap, st.logoA, st.logoB, st.teamA, st.teamB, st.game]);
+    if (sig === lastSeries) return; lastSeries = sig;
+    const pips = (n) => Array.from({length: need}, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+    $('ppA').innerHTML = pips(sa); $('ppB').innerHTML = pips(sb);
+    $('sbarT').textContent = `BO${bo} · premier à ${need}`;
+    if (!showHist) return;
+    const unit = st.game === 'valorant' ? 'Map' : 'Partie';
+    const ico = (k) => st['logo' + k.toUpperCase()] ? `<img src="${esc(st['logo' + k.toUpperCase()])}" alt="">` : `<span class="chip">${esc((st['team' + k.toUpperCase()] || '?').trim().charAt(0).toUpperCase())}</span>`;
+    const over = sa >= need || sb >= need;
+    const cells = [];
+    for (let i = 0; i < bo; i++) {
+      const g = games[i];
+      if (g) {
+        const sc = g.a || g.b ? `${g.a} - ${g.b}${g.ot ? ' OT' : ''}` : `Gagnée${g.ot ? ' OT' : ''}`;
+        cells.push(`<div class="g done"><div class="n">${unit} ${i + 1}${g.map ? ' · ' + esc(g.map) : ''}</div><div class="r">${ico(g.w)}${sc}</div></div>`);
+      } else if (over) break;
+      else if (i === games.length) {
+        const sc = st.liveA != null && st.liveB != null ? `${st.liveA} - ${st.liveB}` : 'en cours';
+        cells.push(`<div class="g live"><div class="n"><span class="dot"></span>${unit} ${i + 1}${st.liveMap ? ' · ' + esc(st.liveMap) : ''}</div><div class="r">${sc}</div></div>`);
+      } else cells.push(`<div class="g next"><div class="n">${unit} ${i + 1}</div><div class="r">${i >= need ? 'si besoin' : '—'}</div></div>`);
+    }
+    $('hist').innerHTML = cells.join('');
   }
 
   // ---------- Classement / tableau, alimenté par la gestion des tournois ----------

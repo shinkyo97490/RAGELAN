@@ -113,6 +113,11 @@ function cleanStream(b) {
     nextMatches: Array.isArray(b.nextMatches) ? b.nextMatches.filter((x) => /^[0-9a-f]{12}$/.test(x)).slice(0, 5) : undefined,
     results: num(b.results, 6),
     bg: typeof b.bg === 'string' && (b.bg === '' || BG_RE.test(b.bg)) ? b.bg : undefined,
+    // Série BO3 / BO5 : détail map par map (ou partie par partie) et score de la map en cours
+    games: Array.isArray(b.games) ? b.games.slice(0, 17).filter((g) => g && typeof g === 'object').map((g) => ({
+      w: g.w === 'b' ? 'b' : 'a', a: num(g.a, 99) ?? 0, b: num(g.b, 99) ?? 0, map: txt(g.map, 20) || '', ot: g.ot === true})) : undefined,
+    liveA: b.liveA === null ? null : num(b.liveA, 99), liveB: b.liveB === null ? null : num(b.liveB, 99),
+    liveMap: txt(b.liveMap, 20),
   };
   for (const [k, v] of Object.entries(upd)) if (v !== undefined) st[k] = v;
   return st;

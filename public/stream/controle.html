@@ -28,6 +28,12 @@
   .chips2 { display: flex; flex-wrap: wrap; gap: 8px; }
   .chips2 button { font-size: 14px; padding: 8px 12px; }
   .kbd { font-family: var(--mono); font-size: 12px; background: #222; padding: 1px 6px; border: 1px solid #444; }
+  .ser { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; margin-top: 12px; }
+  .ser .t { font-weight: 800; font-size: 18px; text-align: center; }
+  .glist { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .glist div { background: #0a0a0e; border: 1px solid var(--line-2); padding: 8px 12px; font-family: var(--mono); font-size: 14px; }
+  .glist b { color: var(--orange); }
+  .serinfo { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--orange); }
   .bgs button i { position: absolute; top: 2px; right: 4px; font-style: normal; font-size: 14px; color: #fff; background: rgba(0,0,0,.7); padding: 0 5px; }
 </style>
 </head>
@@ -97,6 +103,26 @@
       <p class="row" style="margin-top:16px"><button class="btn small ghost" id="reset" type="button">Remettre les scores à 0</button></p>
     </div>
 
+    <div class="panel" id="serPanel"><h2>Série BO3 / BO5 · maps ou parties</h2>
+      <p class="note" id="serOff">Choisis un format BO3, BO5 ou plus dans « Match » (ou charge un match du tournoi) pour suivre la série map par map.</p>
+      <div id="serOn" class="hide">
+        <div class="row"><span class="serinfo" id="serInfo"></span></div>
+        <div class="glist" id="glist"></div>
+        <h3 style="margin:18px 0 6px" id="liveTitle">Map en cours</h3>
+        <div class="row"><label id="mapLbl">Map <input id="liveMap" list="vmaps" maxlength="20" style="padding:8px;background:var(--bg);color:var(--text);border:1px solid var(--line-2);width:180px"></label>
+          <label><input type="checkbox" id="ot"> Prolongations (OT)</label></div>
+        <datalist id="vmaps"><option value="Abyss"><option value="Ascent"><option value="Bind"><option value="Breeze"><option value="Corrode"><option value="Fracture"><option value="Haven"><option value="Icebox"><option value="Lotus"><option value="Pearl"><option value="Split"><option value="Sunset"></datalist>
+        <div class="ser">
+          <div class="sc"><button class="btn ghost" data-l="A-" type="button">−</button><span class="display" id="liveA">–</span><button class="btn" data-l="A+" type="button">+</button></div>
+          <div class="t">score de la<br>map en cours</div>
+          <div class="sc"><button class="btn ghost" data-l="B-" type="button">−</button><span class="display" id="liveB">–</span><button class="btn" data-l="B+" type="button">+</button></div>
+        </div>
+        <div class="row" style="margin-top:14px;justify-content:space-between"><button class="btn" id="winA" type="button">Gagnée par A</button><button class="btn" id="winB" type="button">Gagnée par B</button></div>
+        <p class="row" style="margin-top:14px"><button class="btn small ghost" id="undoMap" type="button">Annuler la dernière</button><button class="btn small ghost" id="resetSer" type="button">Recommencer la série</button></p>
+        <p class="note" style="margin:6px 0 0">Le grand score de l'overlay devient le score de la série. Raccourcis <span class="kbd">A</span>/<span class="kbd">Q</span> et <span class="kbd">P</span>/<span class="kbd">M</span> : score de la map en cours.</p>
+      </div>
+    </div>
+
     <div class="panel"><h2>Textes</h2>
       <div class="field"><label>Message (bandeau défilant en match / sous-titre des scènes plein écran)</label><input id="message" maxlength="140"></div>
       <div class="chips2" style="margin-top:10px" id="presets"></div>
@@ -128,7 +154,49 @@
     $('results').value = String(st.results || 0);
     if ((st.nextMatches || []).length && !lastAuto) lastAuto = (st.next || []).join('\n');
     renderBgs();
+    renderSeries();
   }
+
+  // ---------- Série BO3 / BO5 ----------
+  const isSeries = () => (Number(st.bo) || 0) > 1;
+  const needW = () => Math.ceil((Number(st.bo) || 0) / 2);
+  function vetoMaps() { const f = st.matchId && findMatch(st.matchId); return (f?.m?.veto?.maps || []).map((x) => x.map); }
+  function renderSeries() {
+    const on = isSeries();
+    $('serOn').classList.toggle('hide', !on); $('serOff').classList.toggle('hide', on);
+    if (!on) return;
+    const unit = st.game === 'valorant' ? 'Map' : 'Partie', games = st.games || [], need = needW();
+    const over = (st.scoreA || 0) >= need || (st.scoreB || 0) >= need;
+    $('serInfo').textContent = `${st.teamA} ${st.scoreA} - ${st.scoreB} ${st.teamB} · BO${st.bo} (premier à ${need})${over ? ' · SÉRIE TERMINÉE' : ''}`;
+    $('glist').innerHTML = games.length ? games.map((g, i) => `<div>${unit} ${i + 1}${g.map ? ' · ' + g.map : ''} : <b>${g.w === 'a' ? st.teamA : st.teamB}</b>${g.a || g.b ? ` (${g.a}-${g.b}${g.ot ? ' OT' : ''})` : ''}</div>`).join('') : `<div>Aucune ${unit.toLowerCase()} terminée.</div>`;
+    $('liveTitle').textContent = over ? 'Série terminée' : `${unit} ${games.length + 1} en cours`;
+    $('mapLbl').classList.toggle('hide', st.game !== 'valorant');
+    if (document.activeElement !== $('liveMap')) $('liveMap').value = st.liveMap || '';
+    $('liveA').textContent = st.liveA ?? '–'; $('liveB').textContent = st.liveB ?? '–';
+    $('winA').textContent = `${unit} gagnée par ${st.teamA}`; $('winB').textContent = `${unit} gagnée par ${st.teamB}`;
+    $('winA').disabled = $('winB').disabled = over;
+  }
+  function liveAdd(side, d) { const k = 'live' + side; send({[k]: Math.max(0, Math.min(99, (st[k] ?? 0) + d))}); }
+  document.querySelectorAll('[data-l]').forEach((b) => b.addEventListener('click', () => liveAdd(b.dataset.l[0], b.dataset.l[1] === '+' ? 1 : -1)));
+  $('liveMap').addEventListener('change', () => send({liveMap: $('liveMap').value.trim()}));
+  $('liveMap').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('liveMap').blur(); } });
+  function seriesPatch(games) {
+    const sa = games.filter((g) => g.w === 'a').length, sb = games.filter((g) => g.w === 'b').length;
+    return {games, scoreA: sa, scoreB: sb};
+  }
+  function win(w) {
+    const games = [...(st.games || []), {w, a: st.liveA ?? 0, b: st.liveB ?? 0, map: st.game === 'valorant' ? $('liveMap').value.trim() : '', ot: $('ot').checked}];
+    $('ot').checked = false;
+    send({...seriesPatch(games), liveA: null, liveB: null, liveMap: vetoMaps()[games.length] || ''});
+  }
+  $('winA').addEventListener('click', () => win('a'));
+  $('winB').addEventListener('click', () => win('b'));
+  $('undoMap').addEventListener('click', () => {
+    const games = [...(st.games || [])], g = games.pop();
+    if (!g) return;
+    send({...seriesPatch(games), liveA: g.a, liveB: g.b, liveMap: g.map || ''});
+  });
+  $('resetSer').addEventListener('click', () => { if (confirm('Effacer toutes les maps / parties de cette série ?')) send({games: [], scoreA: 0, scoreB: 0, liveA: null, liveB: null, liveMap: vetoMaps()[0] || ''}); });
 
   // ---------- Photos de fond ----------
   const PRESETS = [['../assets/img/hero.jpg', 'Par défaut'], ['../assets/img/hero-wide.jpg', 'Salle (large)'], ['../assets/da/photo-lan.jpg', 'Joueurs en LAN'],
@@ -194,7 +262,8 @@
     const f = findMatch($('tMatch').value);
     if (!f) return;
     const {c, m} = f;
-    send({game: c, teamA: m.a.name.slice(0, 30), teamB: m.b.name.slice(0, 30), phase: String(m.roundName || '').slice(0, 40), bo: m.bo, scoreA: 0, scoreB: 0, matchId: m.id});
+    send({game: c, teamA: m.a.name.slice(0, 30), teamB: m.b.name.slice(0, 30), phase: String(m.roundName || '').slice(0, 40), bo: m.bo, scoreA: 0, scoreB: 0, matchId: m.id,
+      games: [], liveA: null, liveB: null, liveMap: (m.veto?.maps || [])[0]?.map || ''});
   });
   $('autoNext').addEventListener('click', () => {
     if (!TD) return;
@@ -248,8 +317,9 @@
     const sc = {'1': 'match', '2': 'starting', '3': 'pause', '4': 'end', '5': 'board'}[e.key];
     if (sc) return send({scene: sc});
     const k = e.key.toLowerCase();
-    const d = {a: ['scoreA', 1], q: ['scoreA', -1], p: ['scoreB', 1], m: ['scoreB', -1]}[k];
-    if (d) send({[d[0]]: Math.max(0, Math.min(20, (st[d[0]] || 0) + d[1]))});
+    const d = {a: ['A', 1], q: ['A', -1], p: ['B', 1], m: ['B', -1]}[k];
+    if (d && isSeries()) return liveAdd(d[0], d[1]);
+    if (d) send({['score' + d[0]]: Math.max(0, Math.min(20, (st['score' + d[0]] || 0) + d[1]))});
   });
 
   function countdownIso() {
@@ -275,8 +345,9 @@
     const k = `score${side}`;
     send({[k]: Math.max(0, Math.min(20, st[k] + (op === '+' ? 1 : -1)))});
   }));
-  $('swap').addEventListener('click', () => send({teamA: st.teamB, teamB: st.teamA, scoreA: st.scoreB, scoreB: st.scoreA}));
-  $('reset').addEventListener('click', () => send({scoreA: 0, scoreB: 0}));
+  $('swap').addEventListener('click', () => send({teamA: st.teamB, teamB: st.teamA, scoreA: st.scoreB, scoreB: st.scoreA,
+    games: (st.games || []).map((g) => ({...g, w: g.w === 'a' ? 'b' : 'a', a: g.b, b: g.a})), liveA: st.liveB ?? null, liveB: st.liveA ?? null}));
+  $('reset').addEventListener('click', () => send({scoreA: 0, scoreB: 0, games: [], liveA: null, liveB: null}));
   $('save').addEventListener('click', () => send(form()));
 
   function showLogin(msg) {
