@@ -732,6 +732,12 @@ async function api(req, res, url) {
       const db = loadDb(); const r = db.find((x) => x.id === b.id);
       if (!r) return send(res, 404, {error: 'Introuvable.'});
       if (b.action === 'autorisation' && r.players[b.player]) r.players[b.player].autorisationRecue = Boolean(b.value);
+      // Accueil le jour J : présence, accompagnateur des moins de 16 ans, Menu Best Of remis (champs ajoutés, rien n'est supprimé)
+      else if (['present', 'accompPresent', 'bestOfRemis'].includes(b.action) && r.players[b.player]) {
+        const p = r.players[b.player];
+        p[b.action] = Boolean(b.value);
+        p[b.action + 'At'] = b.value ? new Date().toISOString() : null;
+      }
       else if (b.action === 'markPaid') { saveDb(db); markPaid(r.id, {payment: 'manuel'}); return send(res, 200, {ok: true}); }
       else if (b.action === 'playerPaid' && r.payMode === 'split' && r.players[b.player]) { markPlayerPaid(r.id, b.player, {amountPaid: COMPETITIONS[r.competition].price}); return send(res, 200, {ok: true}); }
       else if (b.action === 'extend' && r.status === 'partial') r.deadline = new Date(Math.max(Date.now(), new Date(r.deadline).getTime()) + SPLIT_HOURS * 3600e3).toISOString();

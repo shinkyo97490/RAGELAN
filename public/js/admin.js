@@ -207,7 +207,7 @@
       $('#refresh').classList.remove('hide');
       $('#export').classList.remove('hide');
       $('#backup').classList.remove('hide');
-      $('#emarg').classList.remove('hide');
+      $('#emarg').classList.remove('hide'); $('#emargprint').classList.remove('hide');
       $('#tournoi').classList.remove('hide');
       $('#mailtest').classList.remove('hide');
       $('#streamctl').classList.remove('hide');
