@@ -116,7 +116,7 @@ arts = [
     ("ARTICLE 2 — ORGANISATEUR", "Le tournoi est organisé par RushXP, avec le soutien de ses partenaires Orange, McDonald's et la Ville de Saint-Paul. "
      "L'équipe RushXP assure l'encadrement, l'arbitrage et l'animation de l'événement."),
     ("ARTICLE 3 — CONDITIONS DE PARTICIPATION", [
-        ("Places disponibles", "10 équipes de 3 joueurs, soit 30 joueurs au maximum."),
+        ("Places disponibles", "8 équipes de 3 joueurs, soit 24 joueurs au maximum."),
         ("Composition", "Chaque équipe est composée d'exactement 3 joueurs. Aucun remplaçant n'est autorisé. La composition déclarée à l'inscription est définitive."),
         ("Inscription", INSCR + " Le capitaine inscrit l'équipe et règle les frais pour l'ensemble des joueurs."),
         ("Frais d'inscription", "20 € par joueur, soit 60 € par équipe."),
@@ -140,7 +140,7 @@ arts = [
     ("ARTICLE 6 — " + BYOC("PC ou console, écran, manette ou clavier/souris et casque")[0], BYOC("PC ou console, écran, manette ou clavier/souris et casque")[1]),
 ] + common_tail(7, "Cash prize total de 600 € : 400 € pour l'équipe classée première et 200 € pour l'équipe classée deuxième, à répartir entre les 3 joueurs de l'équipe.")
 T.append(tournament('rocketleague', 'ROCKET LEAGUE — 3V3', '#1E8BFF', [
-    ('Format', 'Équipes de 3 joueurs (3v3) — 10 équipes, pas de remplaçant'),
+    ('Format', 'Équipes de 3 joueurs (3v3) — 8 équipes, pas de remplaçant'),
     ('Phases', 'Phase de groupes puis double élimination — matchs en BO5'),
     ('Jour', 'Samedi 21 novembre 2026'),
     ('Tarif', '20 € par joueur (60 € par équipe)'),
