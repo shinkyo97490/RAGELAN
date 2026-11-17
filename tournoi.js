@@ -279,7 +279,9 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
   function publicMatch(m, names) {
     const side = (id) => (id ? {id, ...(names[id] || {name: '?'}), ...(id === BYE ? {bye: true} : {})} : null);
     const veto = m.veto ? vetoState(m) : null;
-    return {id: m.id, comp: m.comp, stage: m.stage, group: m.group, bracket: m.bracket, round: m.round, roundName: m.roundName, order: m.order,
+    // Les matchs de poule déjà créés gardent leur nom enregistré : on affiche « Tour » au lieu de « journée »
+    const roundName = m.stage === 'group' ? String(m.roundName || '').replace(/journée (\d+)/, 'Tour $1') : m.roundName;
+    return {id: m.id, comp: m.comp, stage: m.stage, group: m.group, bracket: m.bracket, round: m.round, roundName, order: m.order,
       bo: m.bo, a: side(m.a), b: side(m.b), status: m.status, scoreA: m.scoreA, scoreB: m.scoreB, bye: Boolean(m.bye), doneAt: m.doneAt || null,
       reported: {a: Boolean(m.reports?.a), b: Boolean(m.reports?.b)},
       veto: veto && {maps: veto.maps, complete: veto.complete, steps: veto.steps}};
@@ -452,7 +454,7 @@ module.exports = function tournoi({DATA_DIR, COMPETITIONS, loadDb, send, readBod
         t.groups[comp] = groups;
         t.matches = t.matches.filter((m) => !(m.comp === comp && m.stage === 'group'));
         for (const g of groups) roundRobin(g.teams).forEach((pairs, r) => pairs.forEach(([x, y], i) => {
-          const m = newMatch(comp, 'group', {group: g.name, round: r + 1, roundName: `Poule ${g.name} · journée ${r + 1}`, order: i, bo, a: x, b: y});
+          const m = newMatch(comp, 'group', {group: g.name, round: r + 1, roundName: `Poule ${g.name} · Tour ${r + 1}`, order: i, bo, a: x, b: y});
           refreshReady(t, m); t.matches.push(m);
         }));
         return ok();
