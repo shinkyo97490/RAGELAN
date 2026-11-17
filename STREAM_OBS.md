@@ -32,3 +32,11 @@
 - **« À suivre » automatique** : le bouton remplit la liste avec les prochains matchs du tournoi ; clique ensuite « Mettre à jour l'overlay ».
 - **Scène « Classement / tableau »** : affiche en plein écran, pour le jeu choisi dans « Match », les poules (avec logos) ou le tableau final (Winner / Loser bracket pour la double élimination), et pour TFT le classement + les lobbies de la manche en cours. Tout se met à jour seul toutes les 5 secondes et s'ajuste à l'écran.
 - **Photo de fond** des écrans Début bientôt / Pause / Fin / Classement : clique sur une photo proposée ou importe la tienne (PNG, JPG ou WebP, 5 Mo max, réduite automatiquement). Les photos importées sont gardées ; la croix les retire seulement de la liste.
+
+## Mise à jour : compte à rebours, aperçu et raccourcis
+- **Compte à rebours en durée** : boutons 2, 5, 10, 15, 20, 30, 45 min et 1 h, ou « Autre durée » en minutes. Le chrono démarre au clic. +1 min, +5 min, −1 min et « Arrêter » ajustent en direct. L'ancienne option « jusqu'à une heure précise » existe toujours, à part.
+- Sur l'overlay : « REPRISE DANS » (ou « DÉBUT DANS ») au-dessus du chrono, au format 10:00 sous une heure et 1:30:00 au-delà ; à zéro, « ON REPREND ! » s'affiche pendant 2 minutes.
+- **Aperçu en direct** de l'overlay en haut du panneau de contrôle.
+- **Messages rapides** : un clic pour afficher un message prêt (pause repas, Discord, partenaires…).
+- **Raccourcis clavier** (hors des champs de saisie) : 1 à 5 pour les scènes, A/Q pour le score A, P/M pour le score B.
+- Changement de scène en fondu ; score jusqu'à 20 (BO longs).

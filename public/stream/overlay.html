@@ -53,7 +53,13 @@
   #full .rl { width: 600px; filter: drop-shadow(0 12px 40px rgba(0,0,0,.8)); }
   #full .title { font-size: 104px; margin-top: 6px; line-height: 1; }
   #full .sub { font-size: 34px; color: #ddd; margin-top: 10px; letter-spacing: .06em; }
-  #full .count { font-size: 92px; margin-top: 4px; }
+  #full .cd { margin-top: 10px; display: flex; flex-direction: column; align-items: center; }
+  #full .cd .lbl { font-size: 24px; letter-spacing: .3em; color: #ffb24d; }
+  #full .count { font-size: 110px; line-height: 1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  #full .cd.done .count { font-size: 80px; background: var(--fire); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* Transitions douces entre les scènes */
+  .scene { transition: opacity .6s ease, visibility .6s; }
+  .scene.off { opacity: 0; visibility: hidden; }
   #full .lists { display: flex; gap: 28px; align-items: flex-start; justify-content: center; margin-top: 18px; }
   #full .next { background: rgba(0,0,0,.6); border: 2px solid #ff8a1f; border-radius: 14px; padding: 16px 30px; min-width: 760px; }
   #full .next h3 { margin: 0 0 8px; font-size: 30px; color: #ff8a1f; letter-spacing: .15em; }
@@ -115,7 +121,7 @@
 </head>
 <body>
 
-<div id="match">
+<div id="match" class="scene">
   <div class="bugwrap" id="bugwrap">
   <div class="bug">
     <div class="team a anton"><span id="teamA">Équipe A</span><img id="logoA" class="hide" alt=""></div>
@@ -134,13 +140,13 @@
   </div>
 </div>
 
-<div id="full" class="hide">
+<div id="full" class="scene off">
   <div class="glow"></div>
   <div class="inner"><div id="fWrap">
     <img class="rl" src="../assets/logos/ragelan.png" alt="">
     <div class="title anton fire" id="fTitle"></div>
     <div class="sub" id="fSub"></div>
-    <div class="count anton" id="fCount"></div>
+    <div class="cd hide" id="fCd"><div class="lbl anton" id="fCdLbl">REPRISE DANS</div><div class="count anton" id="fCount"></div></div>
     <div class="lists">
       <div class="next" id="fNext"><h3 class="anton">À SUIVRE</h3><div id="fNextList"></div></div>
       <div class="next hide" id="fRes"><h3 class="anton">DERNIERS RÉSULTATS</h3><div id="fResList"></div></div>
@@ -152,7 +158,7 @@
   </div>
 </div>
 
-<div id="board" class="hide">
+<div id="board" class="scene off">
   <div class="bhead"><img class="g" id="bGame" alt=""><div class="t anton" id="bTitle">Classement</div><div class="s anton" id="bSub"></div><img class="rl" src="../assets/logos/ragelan.png" alt=""></div>
   <div id="bArea"><div id="bInner"></div></div>
   <div class="bfoot"><img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""><img src="../assets/logos/mils.png" alt=""><span>Résultats en direct : ragelan.rushxp.re/tournoi.html</span></div>
@@ -181,9 +187,9 @@
   function apply() {
     if (!st) return;
     const scene = forced || st.scene;
-    $('match').classList.toggle('hide', scene !== 'match');
-    $('full').classList.toggle('hide', scene === 'match' || scene === 'board');
-    $('board').classList.toggle('hide', scene !== 'board');
+    $('match').classList.toggle('off', scene !== 'match');
+    $('full').classList.toggle('off', scene === 'match' || scene === 'board');
+    $('board').classList.toggle('off', scene !== 'board');
     const g = GAMES[st.game] || GAMES.valorant;
     document.documentElement.style.setProperty('--c', g.color);
     $('teamA').textContent = st.teamA; $('teamB').textContent = st.teamB;
@@ -327,16 +333,29 @@
   }
   setInterval(pollT, 5000);
 
+  // Compte à rebours : mm:ss sous une heure, h:mm:ss au-delà ; message pendant 2 minutes une fois terminé
+  const two = (n) => String(n).padStart(2, '0');
   function tick() {
-    const el = $('fCount');
-    const t = st && st.countdown ? new Date(st.countdown).getTime() - Date.now() : 0;
-    if (t > 0) {
-      const m = Math.floor(t / 60000), s = Math.floor((t % 60000) / 1000);
-      el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      el.classList.remove('hide');
-    } else el.classList.add('hide');
-    const vis = !el.classList.contains('hide');
-    if (vis !== el._vis) { el._vis = vis; fitFull(); }
+    const box = $('fCd'), el = $('fCount');
+    const scene = forced || st?.scene;
+    const end = st && st.countdown ? new Date(st.countdown).getTime() : 0;
+    const t = end ? end - Date.now() : 0;
+    let show = false;
+    box.classList.remove('done');
+    if (end && t > 0) {
+      const sec = Math.ceil(t / 1000), h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), ss = sec % 60;
+      el.textContent = h ? `${h}:${two(m)}:${two(ss)}` : `${two(m)}:${two(ss)}`;
+      $('fCdLbl').textContent = scene === 'starting' ? 'DÉBUT DANS' : scene === 'end' ? 'FIN DANS' : 'REPRISE DANS';
+      $('fCdLbl').classList.remove('hide');
+      show = true;
+    } else if (end && t > -120000 && scene !== 'end') {
+      el.textContent = scene === 'starting' ? 'ÇA COMMENCE !' : 'ON REPREND !';
+      $('fCdLbl').classList.add('hide');
+      box.classList.add('done');
+      show = true;
+    }
+    box.classList.toggle('hide', !show);
+    if (show !== box._vis) { box._vis = show; fitFull(); }
   }
 
   async function poll() {

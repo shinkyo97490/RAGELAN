@@ -107,7 +107,7 @@ function cleanStream(b) {
     game: ['valorant', 'rocketleague', 'fc27', 'tft', 'fortnite', 'brawlstars', 'libres'].includes(b.game) ? b.game : undefined,
     bugPos: ['top', 'bottom', 'hidden'].includes(b.bugPos) ? b.bugPos : undefined,
     phase: txt(b.phase, 40), bo: num(b.bo, 17), teamA: txt(b.teamA, 30), teamB: txt(b.teamB, 30),
-    scoreA: num(b.scoreA, 9), scoreB: num(b.scoreB, 9), message: txt(b.message, 140),
+    scoreA: num(b.scoreA, 20), scoreB: num(b.scoreB, 20), message: txt(b.message, 140),
     countdown: typeof b.countdown === 'string' && (b.countdown === '' || !isNaN(Date.parse(b.countdown))) ? b.countdown : undefined,
     next: Array.isArray(b.next) ? b.next.slice(0, 5).map((x) => String(x).slice(0, 80)) : undefined,
     nextMatches: Array.isArray(b.nextMatches) ? b.nextMatches.filter((x) => /^[0-9a-f]{12}$/.test(x)).slice(0, 5) : undefined,
