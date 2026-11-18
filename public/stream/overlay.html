@@ -88,6 +88,20 @@
   #board .bhead .s { font-size: 26px; color: var(--c); letter-spacing: .14em; margin-left: auto; }
   #board .bhead img.rl { height: 74px; }
   #bArea { position: absolute; top: 170px; left: 60px; width: 1800px; height: 790px; }
+  /* ---------- Espaces partenaires (désactivables avec ?pubs=0 dans l'URL de la source OBS) ---------- */
+  .plogo { position: absolute; top: 22px; right: 40px; width: 150px; height: 84px; background: rgba(8,8,12,.92); border-radius: 10px; filter: drop-shadow(0 8px 24px rgba(0,0,0,.6)); }
+  .plogo > div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; opacity: 0; transition: opacity .8s ease; }
+  .plogo > div.on { opacity: 1; }
+  .plogo span { font-size: 10px; letter-spacing: .2em; color: #bbb; font-weight: 700; }
+  .plogo img { height: 48px; }
+  .bugwrap.bottom ~ .plogo { top: auto; bottom: 112px; }
+  .pspot { position: absolute; top: 50%; width: 340px; aspect-ratio: 1 / 1; transform: translateY(-62%); border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 14px 44px rgba(0,0,0,.7); z-index: 2; }
+  .pspot.l { left: 40px; } .pspot.r { right: 40px; }
+  .pspot img, .bpub img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity .8s ease; }
+  .rot img { opacity: 0; } .rot img.on { opacity: 1; }
+  #full.pubs .inner { left: 400px; right: 400px; }
+  #board.pubs #bArea { width: 1380px; }
+  .bpub { position: absolute; right: 60px; width: 380px; aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; background: #000; }
   #bInner { transform-origin: top left; display: inline-block; }
   #board .bfoot { position: absolute; bottom: 30px; left: 60px; right: 60px; display: flex; align-items: center; gap: 26px; }
   #board .bfoot img { height: 54px; }
@@ -132,6 +146,7 @@
   </div>
   <div class="phase anton" id="phase">Phase de groupes</div>
   </div>
+  <div class="plogo hide" id="plogo"><div class="on"><span>POWERED BY</span><img src="../assets/logos/orange.png" alt=""></div><div><span>PARTENAIRE</span><img src="../assets/logos/mcdo.png" alt=""></div></div>
   <div class="lower">
     <div class="logo"><img src="../assets/logos/ragelan.png" alt=""></div>
     <div class="ticker" id="ticker"><span id="msg"></span></div>
@@ -152,6 +167,8 @@
       <div class="next hide" id="fRes"><h3 class="anton">DERNIERS RÉSULTATS</h3><div id="fResList"></div></div>
     </div>
   </div></div>
+  <div class="pspot l hide" id="pspotL"><img src="../assets/pub/orange-cheatcode.jpg" alt=""></div>
+  <div class="pspot r rot hide" id="pspotR"><img class="on" src="../assets/pub/mcdo-combo-gamer.jpg" alt=""><img src="../assets/pub/mcdo-ravito.jpg" alt=""><img src="../assets/pub/mcdo-respawn.jpg" alt=""></div>
   <div class="foot">
     <img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""><img src="../assets/logos/mils.png" alt="">
     <span class="h">twitch.tv/rushxptv · discord.gg/VMUXA2z5Y9</span>
@@ -161,6 +178,8 @@
 <div id="board" class="scene off">
   <div class="bhead"><img class="g" id="bGame" alt=""><div class="t anton" id="bTitle">Classement</div><div class="s anton" id="bSub"></div><img class="rl" src="../assets/logos/ragelan.png" alt=""></div>
   <div id="bArea"><div id="bInner"></div></div>
+  <div class="bpub hide" id="bpubO" style="top:170px"><img src="../assets/pub/orange-cheatcode.jpg" alt=""></div>
+  <div class="bpub rot hide" id="bpubM" style="top:570px"><img class="on" src="../assets/pub/mcdo-combo-gamer.jpg" alt=""><img src="../assets/pub/mcdo-ravito.jpg" alt=""><img src="../assets/pub/mcdo-respawn.jpg" alt=""></div>
   <div class="bfoot"><img src="../assets/logos/orange.png" alt=""><img src="../assets/logos/mcdo.png" alt=""><img src="../assets/logos/saintpaul.png" alt=""><img src="../assets/logos/mils.png" alt=""><span>Résultats en direct : ragelan.rushxp.re/tournoi.html</span></div>
 </div>
 
@@ -204,6 +223,7 @@
     $('phase').textContent = st.phase; $('phase').classList.toggle('hide', !st.phase);
     $('bugwrap').className = `bugwrap ${st.bugPos || 'top'}`;
     $('bugwrap').classList.toggle('hide', st.bugPos === 'hidden');
+    renderPubs(scene);
     if ($('msg').textContent !== st.message) $('msg').textContent = st.message;
     $('ticker').classList.toggle('static', st.message.length < 60);
     const bgUrl = st.bg || '../assets/img/hero.jpg';
@@ -216,6 +236,24 @@
       renderLists();
     }
   }
+
+  // ---------- Espaces partenaires ----------
+  const PUBS = new URLSearchParams(location.search).get('pubs') !== '0';
+  let lastPubs = '';
+  function renderPubs(scene) {
+    const sig = PUBS + scene;
+    if (sig === lastPubs) return; lastPubs = sig;
+    const spots = PUBS && (scene === 'pause' || scene === 'starting');
+    $('plogo').classList.toggle('hide', !PUBS);
+    $('pspotL').classList.toggle('hide', !spots); $('pspotR').classList.toggle('hide', !spots);
+    $('full').classList.toggle('pubs', spots);
+    $('board').classList.toggle('pubs', PUBS);
+    $('bpubO').classList.toggle('hide', !PUBS); $('bpubM').classList.toggle('hide', !PUBS);
+    fitFull(); if (scene === 'board') setTimeout(fitBoard, 50);
+  }
+  // Alterne le logo Orange / McDonald's pendant les matchs et fait tourner les visuels McDonald's
+  function rotate(sel, ms) { setInterval(() => document.querySelectorAll(sel).forEach((box) => { const it = box.children; let i = [...it].findIndex((x) => x.classList.contains('on')); it[i].classList.remove('on'); it[(i + 1) % it.length].classList.add('on'); }), ms); }
+  rotate('#plogo', 15000); rotate('.rot', 10000);
 
   // ---------- Classement / tableau, alimenté par la gestion des tournois ----------
   let T = null, lastBoard = '';
@@ -284,7 +322,7 @@
     const inner = $('bInner');
     const prev = inner.style.transform;
     inner.style.transform = 'none';
-    const k = Math.min(1, 1800 / Math.max(1, inner.scrollWidth), 790 / Math.max(1, inner.scrollHeight));
+    const k = Math.min(1, $('bArea').clientWidth / Math.max(1, inner.scrollWidth), 790 / Math.max(1, inner.scrollHeight));
     const next = `scale(${k.toFixed(4)})`;
     inner.style.transform = next === prev ? prev : next;
   }
