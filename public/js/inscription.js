@@ -47,13 +47,13 @@
     const box = $('#comp-pick');
     box.innerHTML = '';
     for (const [id, c] of Object.entries(st.competitions)) {
-      const full = c.remaining === 0;
+      const full = c.remaining === 0, closed = c.open === false;
       const lab = document.createElement('label');
       lab.style.setProperty('--c', COLORS[id]);
-      lab.innerHTML = `<input type="radio" name="competition" value="${id}" ${full ? 'disabled' : ''}>
+      lab.innerHTML = `<input type="radio" name="competition" value="${id}" ${full || closed ? 'disabled' : ''}>
         <span class="display" style="color:${COLORS[id]}">${c.name}</span>
         <small>${c.unit === 'duos' ? 'Duo' : c.team ? `Équipe de ${c.size}` : 'Solo'} · ${c.price} € / joueur</small>
-        <small>${full ? '<b style="color:#ff6b6b">COMPLET</b>' : `${c.remaining} ${c.unit} restant${['joueurs', 'duos'].includes(c.unit) ? '' : 'e'}${c.remaining > 1 ? 's' : ''}`}</small>`;
+        <small>${closed && !full ? '<b style="color:#ff6b6b">INSCRIPTIONS CLOSES</b>' : full ? '<b style="color:#ff6b6b">COMPLET</b>' : `${c.remaining} ${c.unit} restant${['joueurs', 'duos'].includes(c.unit) ? '' : 'e'}${c.remaining > 1 ? 's' : ''}`}</small>`;
       box.appendChild(lab);
     }
     box.addEventListener('change', (e) => select(e.target.value));

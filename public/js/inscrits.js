@@ -8,6 +8,7 @@
     {id: 'valorant', name: 'VALORANT', unit: 'ÉQUIPES DE 5', hue: 20},
     {id: 'rocketleague', name: 'ROCKET LEAGUE', unit: 'ÉQUIPES DE 3', hue: 210},
     {id: 'fc27', name: 'EA SPORTS FC 27 / FUT', unit: 'JOUEURS SOLO'},
+    {id: 'fortnite', name: 'FORTNITE', unit: 'DUOS', hue: 270},
     {id: 'brawlstars', name: 'BRAWL STARS', unit: 'ÉQUIPES DE 3', hue: 45},
   ];
   let data = null, tab = 'valorant', q = '';

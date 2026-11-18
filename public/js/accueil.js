@@ -4,6 +4,7 @@
     valorant: {name: 'Valorant', color: 'var(--valorant)'},
     rocketleague: {name: 'Rocket League', color: 'var(--rl)'},
     fc27: {name: 'EA Sports FC 27 FUT', color: 'var(--fc)'},
+    fortnite: {name: 'Fortnite', color: 'var(--fortnite, #a66bff)'},
     brawlstars: {name: 'Brawl Stars', color: 'var(--brawl, #ffc21a)'},
   };
   const $ = (s) => document.querySelector(s);
