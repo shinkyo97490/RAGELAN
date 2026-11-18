@@ -37,7 +37,7 @@ ${body}
   function practical(reg) {
     const minors = reg.players.filter((p) => p.mineur), u16 = reg.players.filter((p) => p.moins16);
     return `${minors.length ? box(`<b>Joueur(s) mineur(s) : ${minors.map((p) => esc(p.pseudo)).join(', ')}</b><br>
-      L'autorisation parentale remplie et signée est obligatoire, à présenter à l'accueil : <a href="${BASE_URL}/docs/Autorisation_parentale_RAGE_LAN_2026.pdf" style="color:#f7941d">télécharger le PDF</a>.
+      L'autorisation parentale remplie et signée est obligatoire, à envoyer à contact@rushxp.re avant l'événement : <a href="${BASE_URL}/docs/Autorisation_parentale_RAGE_LAN_2026.pdf" style="color:#f7941d">télécharger le PDF</a>.
       ${u16.length ? `<br><b>Moins de 16 ans (${u16.map((p) => esc(p.pseudo)).join(', ')})</b> : un adulte accompagnateur doit être présent sur place pendant toute la durée de présence.` : ''}`, '#ffc72c') : ''}
       <p><b>Rendez-vous</b> samedi 21 novembre à 13h au Complexe Sportif de Saint-Paul, jusqu'au dimanche 22 novembre à 16h. On joue toute la nuit !</p>
       <p><b>À ramener :</b> ton PC ou ta console, ton écran, tes périphériques, un câble RJ45 et une multiprise.</p>
