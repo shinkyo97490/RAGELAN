@@ -13,8 +13,9 @@ INSCR = ("Les inscriptions se font en ligne sur ragelan.rushxp.re, du 9 novembre
          "(heure de La Réunion), dans la limite des places disponibles. L'inscription n'est validée qu'après le paiement "
          "en ligne (Stripe) de l'intégralité des frais d'inscription.")
 MINEURS = [
-    ("Mineurs", "Tout participant âgé de moins de 18 ans au 21 novembre 2026 doit présenter à l'accueil, le jour de l'événement, "
-     "la fiche d'autorisation parentale RAGE LAN 2026 remplie et signée par son représentant légal (téléchargeable sur ragelan.rushxp.re). "
+    ("Mineurs", "Tout participant âgé de moins de 18 ans au 21 novembre 2026 doit envoyer à contact@rushxp.re, avant l'événement, "
+     "la fiche d'autorisation parentale RAGE LAN 2026 remplie et signée par son représentant légal (téléchargeable sur ragelan.rushxp.re), "
+     "et en garder l'original, qui pourra être demandé à l'accueil. "
      "Sans cette autorisation, l'accès à la compétition ne pourra pas être accordé."),
     ("Moins de 16 ans", "Tout participant âgé de moins de 16 ans au 21 novembre 2026 doit en outre être accompagné d'un adulte, "
      "présent sur place pendant toute la durée de sa présence à l'événement. L'identité de cet adulte est déclarée lors de l'inscription "
