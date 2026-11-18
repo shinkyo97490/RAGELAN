@@ -35,7 +35,7 @@
     const C = D.comps[c];
     const FN = c === 'fortnite';
     const o = opts[c] = opts[c] || {nGroups: Math.max(1, (D.groupsRaw[c] || []).length || 2), bo: 1, format: c === 'valorant' || FN ? 'double' : 'single',
-      bboBo: FN ? 9 : c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, boFinal: FN ? 13 : c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, nSeeds: FN ? Math.max(3, Math.min(16, ent.length || 12)) : 4};
+      bboBo: FN ? 9 : c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, boFinal: FN ? 13 : c === 'rocketleague' ? 5 : c === 'valorant' ? 3 : 1, nSeeds: FN ? Math.max(3, Math.min(16, ent.length || 8)) : 4};
     const BOS = FN ? [9, 13, 7, 5, 3, 1] : [1, 3, 5];
     if (!draftGroups[c]) {
       draftGroups[c] = {};

@@ -28,11 +28,11 @@ const SMTP = {host: process.env.SMTP_HOST || '', port: Number(process.env.SMTP_P
 
 const COMPETITIONS = {
   valorant: {name: 'Valorant', team: true, size: 5, capacity: 8, unit: 'équipes', price: 25, logo: true},
-  rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 8, unit: 'équipes', price: 20, logo: true},
+  rocketleague: {name: 'Rocket League', team: true, size: 3, capacity: 12, unit: 'équipes', price: 20, logo: true, closeAt: '2026-11-21T00:00:00+04:00'},
   fc27: {name: 'EA Sports FC 27 FUT', team: false, size: 1, capacity: 24, unit: 'joueurs', price: 20},
   // TFT et Fortnite retirés de l'événement (masqués, gardés pour l'historique)
   tft: {name: 'TFT', team: false, size: 1, capacity: 16, unit: 'joueurs', price: 20, hidden: true},
-  fortnite: {name: 'Fortnite', team: true, size: 2, capacity: 12, unit: 'duos', price: 20, hidden: true},
+  fortnite: {name: 'Fortnite', team: true, size: 2, capacity: 8, unit: 'duos', price: 20, closeAt: '2026-11-21T00:00:00+04:00'},
   brawlstars: {name: 'Brawl Stars', team: true, size: 3, capacity: 8, unit: 'équipes', price: 10},
   // Ancienne formule payante, remplacée par TFT et Fortnite : le jeu libre est inclus pour tous les inscrits.
   // Gardée (masquée, fermée) pour les anciennes inscriptions éventuelles.
@@ -141,6 +141,10 @@ function bestOfGiven(db) {
   return db.filter((r) => r.status === 'paid' || r.status === 'partial').reduce((n, r) => n + r.players.filter((p) => p.bestOf).length, 0);
 }
 
+// Date de clôture d'une compétition : la sienne si elle en a une (prolongation), sinon la date générale
+function closeOf(id) { const c = COMPETITIONS[id]; return c && c.closeAt ? new Date(c.closeAt) : CLOSE_AT; }
+function compOpen(id, now = Date.now()) { return now >= OPEN_AT.getTime() && now < closeOf(id).getTime(); }
+
 function status() {
   const db = loadDb();
   const now = Date.now();
@@ -148,10 +152,11 @@ function status() {
   for (const [id, c] of Object.entries(COMPETITIONS)) {
     if (c.hidden) continue;
     competitions[id] = {name: c.name, capacity: c.capacity, unit: c.unit, price: c.price, size: c.size, team: c.team, logo: Boolean(c.logo),
-      remaining: Math.max(0, c.capacity - usedUnits(db, id))};
+      remaining: Math.max(0, c.capacity - usedUnits(db, id)), open: compOpen(id, now), closeAt: closeOf(id).toISOString()};
   }
   return {
-    open: now >= OPEN_AT.getTime() && now < CLOSE_AT.getTime(),
+    // Ouvert tant qu'au moins une compétition accepte encore des inscriptions
+    open: Object.values(competitions).some((c) => c.open),
     openAt: OPEN_AT.toISOString(), closeAt: CLOSE_AT.toISOString(), eventAt: EVENT_DATE.toISOString(),
     bestOfRemaining: Math.max(0, BEST_OF_TOTAL - bestOfGiven(db)),
     paymentAvailable: Boolean(STRIPE_SECRET_KEY) || MOCK_PAYMENT,
@@ -320,7 +325,7 @@ function markPlayerPaid(id, idx, info = {}) {
   p.bestOf = BEST_OF_TOTAL - bestOfGiven(db) > 0;
   if (reg.status === 'pending' || reg.status === 'expired') {
     reg.status = 'partial';
-    reg.deadline = new Date(Math.min(Date.now() + SPLIT_HOURS * 3600e3, CLOSE_AT.getTime())).toISOString();
+    reg.deadline = new Date(Math.min(Date.now() + SPLIT_HOURS * 3600e3, closeOf(reg.competition).getTime())).toISOString();
   }
   const firstPart = reg.status === 'partial' && reg.players.filter((x) => x.paid).length === 1;
   if (reg.players.every((x) => x.paid)) { reg.status = 'paid'; reg.paidAt = new Date().toISOString(); }
@@ -500,6 +505,7 @@ async function api(req, res, url) {
     try { body = JSON.parse(await readBody(req, 3 * 1024 * 1024)); } catch { return send(res, 400, {error: 'Requête invalide ou logo trop lourd (2 Mo maximum).'}); }
     const v = validate(body);
     if (v.errors.length) return send(res, 400, {error: v.errors.join(' ')});
+    if (!compOpen(body.competition)) return send(res, 403, {error: `Les inscriptions ${v.comp.name} sont closes.`});
     const db = loadDb();
     if (v.comp.capacity - usedUnits(db, body.competition) < 1) return send(res, 409, {error: `${v.comp.name} est complet.`});
     if (v.comp.team && db.some((r) => r.competition === body.competition && isActive(r) && r.teamName.toLowerCase() === v.teamName.toLowerCase())) {
@@ -613,7 +619,7 @@ async function api(req, res, url) {
     if (req.method !== 'POST') return send(res, 405, {error: 'Méthode non autorisée.'});
     if (p.paid) return send(res, 409, {error: 'Ta part est déjà payée.'});
     if (r.status !== 'partial') return send(res, 409, {error: r.status === 'cancelled' ? 'Cette inscription a été annulée.' : "Le capitaine doit d'abord payer sa part."});
-    if (Date.now() >= CLOSE_AT.getTime()) return send(res, 403, {error: 'Les inscriptions sont closes. Contacte-nous sur Discord.'});
+    if (Date.now() >= closeOf(r.competition).getTime()) return send(res, 403, {error: 'Les inscriptions sont closes. Contacte-nous sur Discord.'});
     if (!status().paymentAvailable) return send(res, 503, {error: "Le paiement en ligne n'est pas disponible pour le moment."});
     if (rateLimited(ip)) return send(res, 429, {error: 'Trop de tentatives, réessaie plus tard.'});
     // Réutilise la session Stripe encore ouverte pour éviter un double paiement

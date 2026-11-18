@@ -51,7 +51,7 @@
         const bar = document.querySelector(`[data-bar="${id}"]`);
         if (bar) bar.style.width = `${Math.round((c.remaining / c.capacity) * 100)}%`;
         document.querySelectorAll(`[data-cta="${id}"]`).forEach((a) => {
-          if (c.remaining === 0 || !st.open) {
+          if (c.remaining === 0 || !st.open || c.open === false) {
             a.setAttribute('aria-disabled', 'true');
             a.textContent = c.remaining === 0 ? 'COMPLET' : before ? `OUVERTURE LE ${fmtDate(st.openAt).toUpperCase()}` : 'INSCRIPTIONS CLOSES';
           }
