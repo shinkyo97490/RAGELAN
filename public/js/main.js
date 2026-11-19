@@ -60,6 +60,13 @@
     } catch (e) { /* le site reste lisible sans le serveur */ }
   }
   loadStatus();
+
+  // Visuels McDonald's en boucle (5 s) dans la partie inscription
+  document.querySelectorAll('.mc-rot').forEach((box) => {
+    const imgs = box.querySelectorAll('img');
+    let i = 0;
+    if (imgs.length > 1 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => { imgs[i].classList.remove('on'); i = (i + 1) % imgs.length; imgs[i].classList.add('on'); }, 5000);
+  });
   setInterval(loadStatus, 30000);
 
   // Apparition des sections au défilement
