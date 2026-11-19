@@ -30,7 +30,7 @@
     else if (v.next.act === 'side') prompt = mine
       ? `<div class="alert info"><b>Choisis ton côté de départ sur ${esc(v.next.map)}</b></div><div class="inl"><button class="btn" data-side="attaque">Attaque</button><button class="btn" data-side="defense">Défense</button></div>`
       : `<div class="alert info">L'adversaire choisit son côté sur ${esc(v.next.map)}…</div>`;
-    else prompt = mine ? `<div class="alert info"><b>À toi : ${v.next.act === 'ban' ? 'bannis' : 'choisis'} une map</b> (clique dessus)</div>`
+    else prompt = mine ? `<div class="alert info"><b>À toi : ${v.next.act === 'ban' ? 'bannis' : 'choisis'} une map</b> (un clic suffit, c'est définitif)</div>`
       : `<div class="alert info">L'adversaire ${v.next.act === 'ban' ? 'bannit' : 'choisit'} une map…</div>`;
     const canClick = mine && v.next && v.next.act !== 'side' && m.status !== 'done';
     return `<div class="panel"><h2>Ban de maps · BO${m.bo}</h2>${prompt}
@@ -69,7 +69,7 @@
   view.addEventListener('click', (e) => {
     if (busy) return;
     const map = e.target.closest('[data-map]:not(:disabled)'), side = e.target.closest('[data-side]');
-    if (map) { const act = m.veto.next.act === 'ban' ? 'Bannir' : 'Choisir'; if (confirm(`${act} ${map.dataset.map} ?`)) post('veto', {map: map.dataset.map}); }
+    if (map) post('veto', {map: map.dataset.map});
     else if (side) post('veto', {side: side.dataset.side});
     else if (e.target.id === 'send') {
       const a = Number(document.getElementById('sa').value), b = Number(document.getElementById('sb').value);
@@ -89,5 +89,8 @@
       if (!m) view.innerHTML = `<div class="panel"><h2>Accès impossible</h2><p>${esc(e.message)}</p></div>`;
     }
   }
-  load(); setInterval(load, 3000);
+  load(); setInterval(load, 2000);
+  // Mise à jour immédiate quand on revient sur l'onglet (les navigateurs ralentissent les onglets en arrière-plan)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  window.addEventListener('focus', load);
 })();
