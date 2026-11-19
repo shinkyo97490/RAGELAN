@@ -33,7 +33,7 @@ const COMPETITIONS = {
   // TFT et Fortnite retirés de l'événement (masqués, gardés pour l'historique)
   tft: {name: 'TFT', team: false, size: 1, capacity: 16, unit: 'joueurs', price: 20, hidden: true},
   fortnite: {name: 'Fortnite', team: true, size: 2, capacity: 8, unit: 'duos', price: 20, closeAt: '2026-11-21T00:00:00+04:00'},
-  brawlstars: {name: 'Brawl Stars', team: true, size: 3, capacity: 8, unit: 'équipes', price: 10},
+  brawlstars: {name: 'Brawl Stars', team: true, size: 3, capacity: 8, unit: 'équipes', price: 10, closeAt: '2026-11-21T00:00:00+04:00'},
   // Ancienne formule payante, remplacée par TFT et Fortnite : le jeu libre est inclus pour tous les inscrits.
   // Gardée (masquée, fermée) pour les anciennes inscriptions éventuelles.
   libres: {name: 'Joueurs libres', team: false, size: 1, capacity: 0, unit: 'places', price: 20, hidden: true},
