@@ -89,7 +89,9 @@ arts = [
         ("Phase finale", "Les équipes qualifiées s'affrontent dans un arbre à double élimination. La phase finale débute le samedi soir (horaire prévisionnel : 21h) et se poursuit le dimanche."),
         *DOUBLE_ELIM,
         ("Format des matchs", "Les matchs de la phase de groupes se jouent en BO1 (une seule carte). Les matchs de la phase finale se jouent en BO3 : la première équipe à remporter 2 cartes gagne le match."),
-        ("Cartes", "Le pool de cartes et la procédure de choix des cartes (bans / picks) sont communiqués par l'arbitre avant le début du tournoi."),
+        ("Cartes", "Le pool compte 7 cartes, communiqué par l'arbitre avant le début du tournoi. Le ban de maps se fait en ligne, dans la salle de match de chaque équipe sur ragelan.rushxp.re. L'équipe A est l'équipe placée à gauche dans la salle de match."),
+        ("Ban de maps en BO1", "Les équipes bannissent une carte à tour de rôle (A, B, A, B, A, B) jusqu'à ce qu'il n'en reste qu'une. La carte restante est jouée et l'équipe A choisit son côté de départ (Attaque ou Défense)."),
+        ("Ban de maps en BO3", "L'équipe A puis l'équipe B bannissent une carte. L'équipe A choisit la carte 1, l'équipe B choisit son côté sur cette carte. L'équipe B choisit la carte 2, l'équipe A choisit son côté sur cette carte. L'équipe A puis l'équipe B bannissent une nouvelle carte. La carte restante est la carte 3 (décisive) et l'équipe A choisit son côté de départ."),
     ]),
     ("ARTICLE 5 — RÈGLES DE JEU SPÉCIFIQUES", [
         ("Paramètres", "Les parties se jouent en partie personnalisée, en mode tournoi, avec les paramètres fixés par l'arbitre RushXP et communiqués aux équipes avant chaque match."),
