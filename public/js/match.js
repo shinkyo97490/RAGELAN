@@ -34,7 +34,7 @@
       : `<div class="alert info">L'adversaire ${v.next.act === 'ban' ? 'bannit' : 'choisit'} une map…</div>`;
     const canClick = mine && v.next && v.next.act !== 'side' && m.status !== 'done';
     return `<div class="panel"><h2>Ban de maps · BO${m.bo}</h2>${prompt}
-      <div class="veto">${v.pool.map((map) => `<button type="button" data-map="${esc(map)}" class="${banned.has(map) ? 'ban' : picked.has(map) ? 'pick' : canClick ? 'can' : ''}" ${canClick && v.remaining.includes(map) ? '' : 'disabled'}>${esc(map)}</button>`).join('')}</div>
+      <div class="veto">${v.pool.map((map) => `<button type="button" data-map="${esc(map)}" class="${banned.has(map) ? 'ban' : picked.has(map) ? 'pick' : canClick ? 'can' : ''}" ${canClick && v.remaining.includes(map) ? '' : 'disabled'} style="--img:url('/assets/maps/${esc(map.toLowerCase())}.jpg')"><span>${esc(map)}</span>${banned.has(map) ? '<i>BANNIE</i>' : picked.has(map) ? '<i>CHOISIE</i>' : ''}</button>`).join('')}</div>
       ${v.maps.length ? `<h3 style="margin:14px 0 6px">Maps du match</h3><ol>${v.maps.map((x) => `<li><b>${esc(x.map)}</b>${x.pickedBy ? ` · choisie par ${esc(x.pickedBy === 'a' ? nameA : nameB)}` : ' · décisive'}${x.side ? ` · ${esc(x.sideBy === 'a' ? nameA : nameB)} en ${SIDE[x.side]}` : ''}</li>`).join('')}</ol>` : ''}
       <details style="margin-top:10px"><summary>Historique</summary><div class="veto-log">${vetoLog(m, nameA, nameB) || '—'}</div></details></div>`;
   }

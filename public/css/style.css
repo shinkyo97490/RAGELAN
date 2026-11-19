@@ -346,10 +346,16 @@ footer.site .social, footer.site .legal { display: flex; flex-wrap: wrap; gap: 6
 .bm .row .t-team { font-size: 14px; overflow: hidden; }
 .bm .row .t-team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .veto { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 12px 0; }
-.veto button { padding: 18px 10px; background: var(--bg); color: var(--text); border: 1px solid var(--line-2); font: 800 16px inherit; text-transform: uppercase; cursor: pointer; }
+.veto { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; }
+.veto button { position: relative; aspect-ratio: 16 / 9; padding: 0; display: flex; align-items: flex-end; justify-content: flex-start; overflow: hidden; background: #000 var(--img) center / cover no-repeat; color: #fff; border: 2px solid var(--line-2); font: 800 16px inherit; text-transform: uppercase; cursor: pointer; }
+.veto button span { position: relative; z-index: 1; width: 100%; text-align: left; padding: 22px 10px 8px; background: linear-gradient(180deg, transparent, rgba(0,0,0,.85)); text-shadow: 0 2px 6px rgba(0,0,0,.8); letter-spacing: .06em; }
+.veto button i { position: absolute; z-index: 1; top: 8px; right: 8px; font: 800 11px var(--mono); font-style: normal; letter-spacing: .1em; padding: 3px 7px; background: #ff4655; color: #fff; }
+.veto button.pick i { background: var(--orange); color: #000; }
+.veto button.ban { filter: grayscale(1) brightness(.45); }
+.veto button.pick { border-color: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+.mapchip { position: relative; min-width: 120px; padding: 34px 12px 8px !important; background: #000 var(--img) center / cover !important; color: #fff !important; text-shadow: 0 2px 6px rgba(0,0,0,.9); filter: grayscale(1) brightness(.5); }
+.mapchip.on { filter: none; outline: 3px solid var(--orange); }
 .veto button:disabled { cursor: default; }
-.veto button.ban { opacity: .35; text-decoration: line-through; }
-.veto button.pick { border-color: var(--orange); color: var(--orange); }
 .veto button.can:hover { border-color: var(--orange); background: rgba(247,148,29,.08); }
 .veto-log { font-size: 14px; line-height: 1.7; color: var(--text-2); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
