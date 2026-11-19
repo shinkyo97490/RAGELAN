@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const VALORANT_MAPS = ['Abyss', 'Ascent', 'Bind', 'Breeze', 'Corrode', 'Fracture', 'Haven', 'Icebox', 'Lotus', 'Pearl', 'Split', 'Sunset'];
+const VALORANT_MAPS = ['Abyss', 'Ascent', 'Bind', 'Breeze', 'Corrode', 'Fracture', 'Haven', 'Icebox', 'Lotus', 'Pearl', 'Split', 'Summit', 'Sunset'];
 const BRACKET_COMPS = ['valorant', 'rocketleague', 'fc27', 'fortnite', 'brawlstars'];
 const BO_OK = [1, 3, 5, 7, 9, 13];
 const BYE = 'BYE'; // place vide d'un tableau (participant exempté)

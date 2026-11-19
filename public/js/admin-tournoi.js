@@ -58,7 +58,7 @@
 
     ${c === 'valorant' ? `<div class="panel"><h2>Map pool</h2>
       <p class="note">Clique sur les maps du pool (7 conseillées). BO1 : bans jusqu'à la dernière map. BO3 : ban, ban, pick, pick, ban, ban, map décisive. BO5 : ban, ban, 4 picks, map décisive. L'adversaire de celui qui choisit une map choisit son côté. L'équipe A (à gauche) commence.</p>
-      <div class="chips" id="pool">${D.maps.map((m) => `<button type="button" class="chip ${D.settings.valorant.mapPool.includes(m) ? 'on' : ''}" data-map="${m}">${m}</button>`).join('')}</div>
+      <div class="chips" id="pool">${D.maps.map((m) => `<button type="button" class="chip mapchip ${D.settings.valorant.mapPool.includes(m) ? 'on' : ''}" data-map="${m}" style="--img:url('/assets/maps/${m.toLowerCase()}.jpg')">${m}</button>`).join('')}</div>
       <p style="margin-top:12px"><button class="btn small" id="savePool">Enregistrer le map pool (${D.settings.valorant.mapPool.length} maps)</button></p></div>` : ''}
 
     ${FN ? '' : `<div class="panel"><h2>Phase de groupes</h2>
