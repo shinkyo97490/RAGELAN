@@ -475,3 +475,22 @@ button.chip.on { color: var(--orange); }
 .mc-rot { position: relative; width: 100%; max-width: 440px; aspect-ratio: 1 / 1; margin-top: 26px; overflow: hidden; border: 1px solid var(--line-2); background: #000; }
 .mc-rot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .8s ease; }
 .mc-rot img.on { opacity: 1; }
+
+/* ---------- Résultats (accueil) ---------- */
+.res-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+.res-card { background: var(--surface); border-top: 5px solid var(--c); padding: 22px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.res-card .rh { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+.res-card .rh img { max-width: 200px; width: auto; }
+.res-card .tot { white-space: nowrap; font-family: var(--mono); font-weight: 700; font-size: 13px; letter-spacing: .14em; color: var(--c); }
+.rk { display: grid; grid-template-columns: 34px 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; background: var(--bg); }
+.rk.r1 { background: linear-gradient(90deg, rgba(255, 210, 63, .16), var(--bg)); border-left: 3px solid #ffd23f; }
+.rk .pos { font-weight: 900; font-stretch: 125%; font-size: 26px; line-height: 1; color: #c9ced6; }
+.rk.r1 .pos { color: #ffd23f; } .rk .pos sup { font-size: 12px; }
+.rk .tl { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
+.rk .tl img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.rk .ini { text-transform: uppercase; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: var(--surface); color: var(--c); font-weight: 900; font-size: 18px; }
+.rk .tn { min-width: 0; } .rk .tn b { display: block; font-size: 18px; text-transform: uppercase; overflow-wrap: break-word; }
+.rk .tn small { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.rk .pz { font-weight: 900; font-stretch: 115%; font-size: 20px; white-space: nowrap; }
+.rk.r1 .pz { color: #ffd23f; }
+.res-links { display: flex; flex-wrap: wrap; gap: 12px; }
